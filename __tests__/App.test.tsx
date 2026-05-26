@@ -6,8 +6,38 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
 
+jest.mock('@react-navigation/native', () => ({
+  NavigationContainer: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('../src/navigation/RootNavigation', () => {
+  return function RootNavigation() {
+    return null;
+  };
+});
+
+jest.mock('../src/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: jest.fn(() => ({
+        data: {
+          subscription: {
+            unsubscribe: jest.fn(),
+          },
+        },
+      })),
+    },
+  },
+}));
+
 test('renders correctly', async () => {
-  await ReactTestRenderer.act(() => {
+  await ReactTestRenderer.act(async () => {
     ReactTestRenderer.create(<App />);
+    await Promise.resolve();
   });
 });

@@ -14,7 +14,9 @@ export interface Video {
   comments: { count: number }[];
 }
 
-export const useVideos = () => {
+const PUBLIC_FEED_USERNAMES = ['tiktokclone', 'tiktok_fr', 'tiktok_africa', 'demo'];
+
+export const useVideos = (isGuest = false) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +34,21 @@ export const useVideos = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setVideos(data || []);
+
+      const allVideos = data || [];
+      if (!isGuest) {
+        setVideos(allVideos);
+        return;
+      }
+
+      const guestVideos = allVideos.filter(video => {
+        const username = video.profiles?.username?.toLowerCase() || '';
+        return PUBLIC_FEED_USERNAMES.includes(username);
+      });
+
+      // Fallback to a short curated list when the configured public creators
+      // are not present yet in the database.
+      setVideos(guestVideos.length > 0 ? guestVideos : allVideos.slice(0, 8));
     } catch (error) {
       console.error('Error fetching videos:', error);
     } finally {
@@ -42,7 +58,7 @@ export const useVideos = () => {
 
   useEffect(() => {
     fetchVideos();
-  }, []);
+  }, [isGuest]);
 
   return { videos, loading, refresh: fetchVideos };
 };

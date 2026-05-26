@@ -3,12 +3,28 @@ import { View, Text, TouchableOpacity, TextInput, Alert, ActivityIndicator, Imag
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
+import { Session } from '@supabase/supabase-js';
+import AuthWall from '../components/AuthWall';
 
-const UploadScreen = () => {
+interface UploadScreenProps {
+  session: Session | null;
+}
+
+const UploadScreen: React.FC<UploadScreenProps> = ({ session }) => {
   const [video, setVideo] = useState<ImagePickerResponse | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const navigation = useNavigation<any>();
+
+  if (!session) {
+    return (
+      <AuthWall
+        title="Publication reservee"
+        message="Creer un compte vous permet d'uploader vos videos, d'ajouter une legende et de publier dans votre feed."
+        onPress={() => navigation.navigate('Auth')}
+      />
+    );
+  }
 
   const pickVideo = async () => {
     const result = await launchImageLibrary({

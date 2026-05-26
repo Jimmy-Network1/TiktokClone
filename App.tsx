@@ -7,12 +7,14 @@ import { StatusBar } from 'react-native';
 import { supabase } from './src/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
-function App(): React.JSX.Element {
+function App(): React.JSX.Element | null {
   const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setAuthReady(true);
     });
 
     const {
@@ -23,6 +25,10 @@ function App(): React.JSX.Element {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  if (!authReady) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>

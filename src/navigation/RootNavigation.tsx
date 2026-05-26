@@ -6,13 +6,36 @@ import ProfileScreen from '../screens/ProfileScreen';
 import AuthScreen from '../screens/AuthScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { Session } from '@supabase/supabase-js';
+import { Text, View } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 import UploadScreen from '../screens/UploadScreen';
 
-const MainTabs = () => {
+const LockedPlaceholder = ({ title }: { title: string }) => (
+  <View className="flex-1 items-center justify-center bg-black px-6">
+    <Text className="text-2xl font-bold text-white">{title}</Text>
+    <Text className="mt-3 text-center text-zinc-400">
+      Cette section est reservee aux utilisateurs connectes.
+    </Text>
+  </View>
+);
+
+interface MainTabsProps {
+  session: Session | null;
+}
+
+const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
+  const requireAuth = ({ navigation, preventDefault }: any) => {
+    if (session?.user) {
+      return;
+    }
+
+    preventDefault();
+    navigation.navigate('Auth');
+  };
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -24,39 +47,43 @@ const MainTabs = () => {
     >
       <Tab.Screen
         name="Home"
-        component={FeedScreen}
+        children={() => <FeedScreen isGuest={!session?.user} />}
         options={{
           tabBarIcon: ({ color }) => <Home color={color} size={24} />,
         }}
       />
       <Tab.Screen
         name="Discover"
-        component={ProfileScreen} // Placeholder
+        children={() => <LockedPlaceholder title="Decouverte" />}
         options={{
           tabBarIcon: ({ color }) => <Search color={color} size={24} />,
         }}
+        listeners={{ tabPress: requireAuth }}
       />
       <Tab.Screen
         name="Upload"
-        component={UploadScreen}
+        children={() => <UploadScreen session={session} />}
         options={{
           tabBarIcon: ({ color }) => <PlusSquare color={color} size={32} />,
           tabBarLabel: () => null,
         }}
+        listeners={{ tabPress: requireAuth }}
       />
       <Tab.Screen
         name="Inbox"
-        component={ProfileScreen} // Placeholder
+        children={() => <LockedPlaceholder title="Messages" />}
         options={{
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={24} />,
         }}
+        listeners={{ tabPress: requireAuth }}
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        children={() => <ProfileScreen session={session} />}
         options={{
           tabBarIcon: ({ color }) => <User color={color} size={24} />,
         }}
+        listeners={{ tabPress: requireAuth }}
       />
     </Tab.Navigator>
   );
@@ -69,11 +96,12 @@ interface RootNavigationProps {
 const RootNavigation: React.FC<RootNavigationProps> = ({ session }) => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {session && session.user ? (
-        <Stack.Screen name="Main" component={MainTabs} />
-      ) : (
-        <Stack.Screen name="Auth" component={AuthScreen} />
-      )}
+      <Stack.Screen name="Main">{() => <MainTabs session={session} />}</Stack.Screen>
+      <Stack.Screen
+        name="Auth"
+        component={AuthScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
     </Stack.Navigator>
   );
 };

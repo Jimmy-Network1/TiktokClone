@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { useNavigation } from '@react-navigation/native';
 
 const AuthScreen = () => {
   const [email, setEmail] = useState('');
@@ -8,6 +9,7 @@ const AuthScreen = () => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const navigation = useNavigation<any>();
 
   async function handleAuth() {
     setLoading(true);
@@ -41,6 +43,12 @@ const AuthScreen = () => {
 
   return (
     <View className="flex-1 bg-white p-8 justify-center">
+      {navigation.canGoBack() ? (
+        <TouchableOpacity className="absolute left-8 top-16 z-10" onPress={() => navigation.goBack()}>
+          <Text className="text-sm font-bold text-gray-500">Fermer</Text>
+        </TouchableOpacity>
+      ) : null}
+
       <Text className="text-4xl font-bold text-center mb-8">TikTok Clone</Text>
       
       <Text className="text-2xl font-semibold mb-6">
