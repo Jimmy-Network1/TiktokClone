@@ -4,6 +4,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import FeedScreen from '../screens/FeedScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AuthScreen from '../screens/AuthScreen';
+import CommentsScreen from '../screens/CommentsScreen';
+import PublicProfileScreen from '../screens/PublicProfileScreen';
+import DiscoverScreen from '../screens/DiscoverScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import InboxScreen from '../screens/InboxScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { Session } from '@supabase/supabase-js';
 import { Text, View } from 'react-native';
@@ -47,18 +52,17 @@ const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
     >
       <Tab.Screen
         name="Home"
-        children={() => <FeedScreen isGuest={!session?.user} />}
+        children={() => <FeedScreen isGuest={!session?.user} session={session} />}
         options={{
           tabBarIcon: ({ color }) => <Home color={color} size={24} />,
         }}
       />
       <Tab.Screen
         name="Discover"
-        children={() => <LockedPlaceholder title="Decouverte" />}
+        component={DiscoverScreen}
         options={{
           tabBarIcon: ({ color }) => <Search color={color} size={24} />,
         }}
-        listeners={{ tabPress: requireAuth }}
       />
       <Tab.Screen
         name="Upload"
@@ -71,7 +75,7 @@ const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
       />
       <Tab.Screen
         name="Inbox"
-        children={() => <LockedPlaceholder title="Messages" />}
+        children={() => <InboxScreen session={session} />}
         options={{
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={24} />,
         }}
@@ -100,6 +104,17 @@ const RootNavigation: React.FC<RootNavigationProps> = ({ session }) => {
       <Stack.Screen
         name="Auth"
         component={AuthScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="Comments"
+        component={CommentsScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>

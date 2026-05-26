@@ -33,6 +33,9 @@ const AuthScreen = () => {
           password,
         });
         if (error) throw error;
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
       }
     } catch (error: any) {
       Alert.alert('Erreur', error.message);

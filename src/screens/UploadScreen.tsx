@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
