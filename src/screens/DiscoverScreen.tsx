@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 
@@ -81,6 +81,8 @@ const DiscoverScreen = () => {
         ...item,
         profiles: Array.isArray(item.profiles) ? item.profiles[0] || null : item.profiles || null,
       })));
+    } catch (error) {
+      console.error('Error loading discover data:', error);
     } finally {
       setLoading(false);
     }
@@ -90,72 +92,79 @@ const DiscoverScreen = () => {
     loadDiscoverData(query);
   }, [query, loadDiscoverData]);
 
+  const sections = [
+    { title: 'Créateurs', data: profiles, type: 'profile' },
+    { title: 'Vidéos', data: videos, type: 'video' },
+  ];
+
   return (
     <View className="flex-1 bg-black">
       <View className="border-b border-white/10 px-5 pb-5 pt-14">
-        <Text className="text-3xl font-bold text-white">Decouvrir</Text>
+        <Text className="text-3xl font-bold text-white">Découvrir</Text>
         <Text className="mt-1 text-sm text-zinc-400">
-          Recherchez des createurs et des videos a suivre.
+          Recherchez des créateurs et des vidéos à suivre.
         </Text>
         <TextInput
           className="mt-4 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-white"
-          placeholder="Rechercher un profil ou un mot cle..."
+          placeholder="Rechercher un profil ou un mot clé..."
           placeholderTextColor="#71717a"
           value={query}
           onChangeText={setQuery}
         />
       </View>
 
-      {loading ? (
+      {loading && profiles.length === 0 && videos.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#fff" size="large" />
         </View>
       ) : (
-        <FlatList
-          data={[]}
-          keyExtractor={(_, index) => `section-${index}`}
-          renderItem={null}
-          ListHeaderComponent={
-            <View className="px-5 py-6">
-              <Text className="mb-3 text-xl font-bold text-white">Createurs</Text>
-              {profiles.length === 0 ? (
-                <Text className="mb-6 text-sm text-zinc-500">Aucun profil trouve.</Text>
-              ) : (
-                profiles.map(profile => (
-                  <TouchableOpacity
-                    key={profile.id}
-                    className="mb-3 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
-                    onPress={() => navigation.navigate('PublicProfile', { userId: profile.id })}
-                  >
-                    <Text className="text-base font-semibold text-white">
-                      @{profile.username || 'utilisateur'}
-                    </Text>
-                    <Text className="mt-1 text-sm text-zinc-400">
-                      {profile.full_name || profile.bio || 'Profil public'}
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              )}
-
-              <Text className="mb-3 mt-2 text-xl font-bold text-white">Videos</Text>
-              {videos.length === 0 ? (
-                <Text className="text-sm text-zinc-500">Aucune video trouvee.</Text>
-              ) : (
-                videos.map(video => (
-                  <TouchableOpacity
-                    key={video.id}
-                    className="mb-3 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
-                    onPress={() => navigation.navigate('PublicProfile', { userId: video.user_id })}
-                  >
-                    <Text className="text-sm font-semibold text-zinc-300">
-                      @{video.profiles?.username || 'createur'}
-                    </Text>
-                    <Text className="mt-1 text-base text-white">{video.caption || 'Sans legende'}</Text>
-                  </TouchableOpacity>
-                ))
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderSectionHeader={({ section: { title, data } }) => (
+            <View className="bg-black px-5 py-3">
+              <Text className="text-xl font-bold text-white">{title}</Text>
+              {data.length === 0 && (
+                <Text className="mt-2 text-sm text-zinc-500">Aucun résultat trouvé.</Text>
               )}
             </View>
-          }
+          )}
+          renderItem={({ item, section }) => {
+            if (section.type === 'profile') {
+              const profile = item as DiscoverProfile;
+              return (
+                <TouchableOpacity
+                  className="mx-5 mb-3 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
+                  onPress={() => navigation.navigate('PublicProfile', { userId: profile.id })}
+                >
+                  <Text className="text-base font-semibold text-white">
+                    @{profile.username || 'utilisateur'}
+                  </Text>
+                  <Text className="mt-1 text-sm text-zinc-400">
+                    {profile.full_name || profile.bio || 'Profil public'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            } else {
+              const video = item as DiscoverVideo;
+              return (
+                <TouchableOpacity
+                  className="mx-5 mb-3 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
+                  onPress={() => navigation.navigate('PublicProfile', { userId: video.user_id })}
+                >
+                  <Text className="text-sm font-semibold text-zinc-300">
+                    @{video.profiles?.username || 'créateur'}
+                  </Text>
+                  <Text className="mt-1 text-base text-white" numberOfLines={2}>
+                    {video.caption || 'Sans légende'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }
+          }}
+          ListFooterComponent={<View className="h-20" />}
+          refreshing={loading}
+          onRefresh={() => loadDiscoverData(query)}
         />
       )}
     </View>

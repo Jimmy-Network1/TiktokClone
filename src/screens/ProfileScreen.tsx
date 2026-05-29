@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import AuthWall from '../components/AuthWall';
+import { Play } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
+const COLUMN_WIDTH = width / 3;
 
 interface ProfileScreenProps {
   session: Session | null;
@@ -20,7 +24,8 @@ interface ProfileVideo {
   id: string;
   caption: string | null;
   created_at: string;
-  video_url?: string;
+  video_url: string;
+  thumbnail_url?: string | null;
   likes: { id: string }[];
   comments: { id: string }[];
 }
@@ -34,9 +39,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = useCallback(async () => {
-    if (!session?.user) {
-      return;
-    }
+    if (!session?.user) return;
 
     try {
       setLoading(true);
@@ -59,6 +62,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
             caption,
             created_at,
             video_url,
+            thumbnail_url,
             likes (id),
             comments (id)
           `)
@@ -74,28 +78,16 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
           .eq('follower_id', session.user.id),
       ]);
 
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (videosError) {
-        throw videosError;
-      }
-
-      if (followersError) {
-        throw followersError;
-      }
-
-      if (followingError) {
-        throw followingError;
-      }
+      if (profileError) throw profileError;
+      if (videosError) throw videosError;
 
       setProfile(profileData as ProfileData);
       setVideos((videosData as ProfileVideo[]) || []);
       setFollowersCount(followers || 0);
       setFollowingCount(following || 0);
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Impossible de charger le profil.');
+      console.error('Profile load error:', error);
+      Alert.alert('Erreur', 'Impossible de charger votre profil.');
     } finally {
       setLoading(false);
     }
@@ -105,130 +97,115 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
     loadProfile();
   }, [loadProfile]);
 
-  const handleDeleteVideo = async (videoId: string) => {
-    Alert.alert('Supprimer cette video', 'Cette action est definitive.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const video = videos.find(item => item.id === videoId);
-            if (video?.video_url) {
-              const marker = '/storage/v1/object/public/videos/';
-              const storagePath = video.video_url.includes(marker)
-                ? video.video_url.split(marker)[1]
-                : null;
-
-              if (storagePath) {
-                await supabase.storage.from('videos').remove([storagePath]);
-              }
-            }
-
-            const { error } = await supabase.from('videos').delete().eq('id', videoId);
-            if (error) {
-              throw error;
-            }
-
-            setVideos(current => current.filter(video => video.id !== videoId));
-          } catch (error: any) {
-            Alert.alert('Erreur', error.message || 'Suppression impossible.');
-          }
-        },
-      },
-    ]);
-  };
-
   if (!session) {
     return (
       <AuthWall
-        title="Profil reserve"
-        message="Connectez-vous pour voir votre profil, vos informations et gerer votre compte."
+        title="Profil réservé"
+        message="Connectez-vous pour voir votre profil, gérer vos vidéos et vos abonnements."
         onPress={() => navigation.navigate('Auth')}
       />
     );
   }
 
+  const renderHeader = () => (
+    <View className="px-5 pb-6 pt-10 items-center">
+      <View className="h-24 w-24 items-center justify-center rounded-full bg-zinc-900 border-2 border-[#FE2C55]">
+        <Text className="text-3xl font-bold text-white">
+          {(profile?.username || 'U').charAt(0).toUpperCase()}
+        </Text>
+      </View>
+
+      <Text className="mt-4 text-xl font-bold text-white">
+        @{profile?.username || 'utilisateur'}
+      </Text>
+      
+      <View className="mt-6 flex-row items-center justify-center space-x-8">
+        <View className="items-center px-4">
+           <Text className="text-lg font-bold text-white">{followingCount}</Text>
+           <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">Abonnements</Text>
+        </View>
+        <View className="items-center px-4">
+           <Text className="text-lg font-bold text-white">{followersCount}</Text>
+           <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">Abonnés</Text>
+        </View>
+        <View className="items-center px-4">
+           <Text className="text-lg font-bold text-white">{videos.length}</Text>
+           <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">J'aime</Text>
+        </View>
+      </View>
+
+      <View className="mt-6 flex-row space-x-2">
+        <TouchableOpacity
+          className="bg-zinc-900 border border-white/10 px-8 py-3 rounded-md"
+          onPress={() => navigation.navigate('EditProfile')}
+        >
+          <Text className="text-white font-bold text-sm">Modifier le profil</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="bg-zinc-900 border border-white/10 p-3 rounded-md"
+          onPress={() => supabase.auth.signOut()}
+        >
+          <Text className="text-white font-bold text-sm">Déconnexion</Text>
+        </TouchableOpacity>
+      </View>
+
+      {profile?.bio ? (
+        <Text className="mt-4 text-sm text-zinc-400 text-center px-10">
+          {profile.bio}
+        </Text>
+      ) : (
+        <Text className="mt-4 text-xs text-zinc-600 italic">
+          Aucune bio ajoutée
+        </Text>
+      )}
+
+      {/* Tabs placeholder */}
+      <View className="mt-8 w-full border-t border-white/5 flex-row">
+         <View className="flex-1 items-center py-3 border-b-2 border-white">
+            <Play color="white" size={20} />
+         </View>
+         <View className="flex-1 items-center py-3">
+            <Text className="text-zinc-600">🔒</Text>
+         </View>
+      </View>
+    </View>
+  );
+
   return (
     <View className="flex-1 bg-black">
       <FlatList
         data={videos}
+        numColumns={3}
         keyExtractor={item => item.id}
+        ListHeaderComponent={renderHeader}
         refreshing={loading}
         onRefresh={loadProfile}
-        contentContainerStyle={{ padding: 20, flexGrow: videos.length === 0 ? 1 : 0 }}
-        ListHeaderComponent={
-          <View className="mb-6 rounded-[32px] border border-white/10 bg-zinc-950 px-5 py-6">
-            <View className="h-24 w-24 items-center justify-center rounded-full bg-[#FE2C55]/15">
-              <Text className="text-3xl font-bold text-white">
-                {(profile?.username || profile?.full_name || 'U').charAt(0).toUpperCase()}
-              </Text>
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            style={{ width: COLUMN_WIDTH, height: COLUMN_WIDTH * 1.4 }}
+            className="border-[0.5px] border-black bg-zinc-900 overflow-hidden relative"
+            onPress={() => navigation.navigate('Home', { initialVideoId: item.id })}
+          >
+            {/* Thumbnail placeholder if no real thumbnail */}
+            <View className="flex-1 items-center justify-center">
+               <Play color="rgba(255,255,255,0.2)" size={40} />
             </View>
-
-            <Text className="mt-5 text-3xl font-bold text-white">
-              @{profile?.username || 'utilisateur'}
-            </Text>
-            {profile?.full_name ? (
-              <Text className="mt-2 text-base font-medium text-zinc-300">{profile.full_name}</Text>
-            ) : null}
-            <Text className="mt-3 text-sm leading-6 text-zinc-400">
-              {profile?.bio || 'Ajoutez une bio pour personnaliser votre profil.'}
-            </Text>
-
-            <View className="mt-6 flex-row">
-              <View className="mr-4 flex-1 rounded-[24px] border border-white/10 bg-black px-4 py-4">
-                <Text className="text-2xl font-bold text-white">{videos.length}</Text>
-                <Text className="mt-1 text-xs uppercase tracking-[1.5px] text-zinc-500">Videos</Text>
-              </View>
-              <View className="mr-4 flex-1 rounded-[24px] border border-white/10 bg-black px-4 py-4">
-                <Text className="text-2xl font-bold text-white">{followersCount}</Text>
-                <Text className="mt-1 text-xs uppercase tracking-[1.5px] text-zinc-500">Abonnes</Text>
-              </View>
-              <View className="flex-1 rounded-[24px] border border-white/10 bg-black px-4 py-4">
-                <Text className="text-2xl font-bold text-white">{followingCount}</Text>
-                <Text className="mt-1 text-xs uppercase tracking-[1.5px] text-zinc-500">Abonnements</Text>
-              </View>
+            
+            <View className="absolute bottom-1 left-1 flex-row items-center">
+               <Play color="white" size={12} />
+               <Text className="text-white text-[10px] font-bold ml-1">
+                  {item.likes.length}
+               </Text>
             </View>
-
-            <TouchableOpacity
-              className="mt-6 rounded-2xl bg-[#25F4EE] px-5 py-4 items-center"
-              onPress={() => navigation.navigate('EditProfile')}
-            >
-              <Text className="font-bold text-black">Modifier le profil</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="mt-3 rounded-2xl border border-white/10 px-5 py-4 items-center"
-              onPress={() => supabase.auth.signOut()}
-            >
-              <Text className="font-bold text-white">Se deconnecter</Text>
-            </TouchableOpacity>
-          </View>
-        }
+          </TouchableOpacity>
+        )}
         ListEmptyComponent={
           !loading ? (
-            <View className="flex-1 items-center justify-center rounded-[28px] border border-white/10 bg-zinc-950 px-6 py-10">
-              <Text className="text-xl font-bold text-white">Aucune video publiee</Text>
-              <Text className="mt-2 text-center text-zinc-400">
-                Votre profil est pret, il ne manque plus que votre premiere publication.
-              </Text>
+            <View className="py-20 items-center justify-center">
+              <Text className="text-zinc-500 font-medium">Pas encore de vidéos.</Text>
             </View>
           ) : null
         }
-        renderItem={({ item }) => (
-          <View className="mb-4 rounded-[28px] border border-white/10 bg-zinc-950 px-4 py-4">
-            <Text className="text-base font-semibold text-white">{item.caption || 'Sans legende'}</Text>
-            <View className="mt-3 flex-row items-center justify-between">
-              <View className="flex-row">
-                <Text className="mr-4 text-sm text-zinc-400">{item.likes.length} j'aime</Text>
-                <Text className="text-sm text-zinc-400">{item.comments.length} commentaires</Text>
-              </View>
-              <TouchableOpacity onPress={() => handleDeleteVideo(item.id)}>
-                <Text className="text-sm font-bold text-[#FE2C55]">Supprimer</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       />
     </View>
   );

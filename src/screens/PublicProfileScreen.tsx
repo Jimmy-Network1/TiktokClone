@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
+import { Play, ChevronLeft } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
+const COLUMN_WIDTH = width / 3;
 
 interface PublicProfile {
   id: string;
@@ -65,21 +69,8 @@ const PublicProfileScreen = () => {
         supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', userId),
       ]);
 
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (videosError) {
-        throw videosError;
-      }
-
-      if (followersError) {
-        throw followersError;
-      }
-
-      if (followingError) {
-        throw followingError;
-      }
+      if (profileError) throw profileError;
+      if (videosError) throw videosError;
 
       setProfile(profileData as PublicProfile);
       setVideos((videosData as ProfileVideo[]) || []);
@@ -94,16 +85,12 @@ const PublicProfileScreen = () => {
           .eq('following_id', userId)
           .maybeSingle();
 
-        if (followStateError) {
-          throw followStateError;
-        }
-
+        if (followStateError) throw followStateError;
         setIsFollowing(!!followRow);
-      } else {
-        setIsFollowing(false);
       }
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Impossible de charger ce profil.');
+      console.error('Public profile load error:', error);
+      Alert.alert('Erreur', 'Impossible de charger ce profil.');
     } finally {
       setLoading(false);
     }
@@ -119,9 +106,7 @@ const PublicProfileScreen = () => {
       return;
     }
 
-    if (currentUserId === userId) {
-      return;
-    }
+    if (currentUserId === userId) return;
 
     const previousState = isFollowing;
     setFollowBusy(true);
@@ -130,33 +115,83 @@ const PublicProfileScreen = () => {
 
     try {
       if (previousState) {
-        const { error } = await supabase
+        await supabase
           .from('follows')
           .delete()
           .eq('follower_id', currentUserId)
           .eq('following_id', userId);
-
-        if (error) {
-          throw error;
-        }
       } else {
-        const { error } = await supabase.from('follows').insert({
+        await supabase.from('follows').insert({
           follower_id: currentUserId,
           following_id: userId,
         });
-
-        if (error) {
-          throw error;
-        }
       }
     } catch (error: any) {
       setIsFollowing(previousState);
       setFollowersCount(count => (previousState ? count + 1 : Math.max(0, count - 1)));
-      Alert.alert('Erreur', error.message || "Impossible de modifier l'abonnement.");
+      Alert.alert('Erreur', "L'action a échoué.");
     } finally {
       setFollowBusy(false);
     }
   };
+
+  const renderHeader = () => (
+    <View className="items-center px-5 pb-6 pt-6">
+      <View className="h-24 w-24 items-center justify-center rounded-full bg-zinc-900 border-2 border-[#25F4EE]">
+        <Text className="text-3xl font-bold text-white">
+          {(profile?.username || 'U').charAt(0).toUpperCase()}
+        </Text>
+      </View>
+
+      <Text className="mt-4 text-xl font-bold text-white">
+        @{profile?.username || 'utilisateur'}
+      </Text>
+
+      <View className="mt-6 flex-row items-center justify-center space-x-8">
+        <View className="items-center px-4">
+           <Text className="text-lg font-bold text-white">{followingCount}</Text>
+           <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">Abonnements</Text>
+        </View>
+        <View className="items-center px-4">
+           <Text className="text-lg font-bold text-white">{followersCount}</Text>
+           <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">Abonnés</Text>
+        </View>
+        <View className="items-center px-4">
+           <Text className="text-lg font-bold text-white">{videos.length}</Text>
+           <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">J'aime</Text>
+        </View>
+      </View>
+
+      {currentUserId !== userId && (
+        <TouchableOpacity
+          className={`mt-6 w-48 rounded-md py-3 items-center ${
+            isFollowing ? 'bg-zinc-900 border border-white/10' : 'bg-[#FE2C55]'
+          }`}
+          disabled={followBusy}
+          onPress={handleToggleFollow}
+        >
+          <Text className="text-white font-bold text-sm">
+            {isFollowing ? 'Abonné' : "S'abonner"}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {profile?.bio && (
+        <Text className="mt-4 text-sm text-zinc-400 text-center px-10">
+          {profile.bio}
+        </Text>
+      )}
+
+      <View className="mt-8 w-full border-t border-white/5 flex-row">
+         <View className="flex-1 items-center py-3 border-b-2 border-white">
+            <Play color="white" size={20} />
+         </View>
+         <View className="flex-1 items-center py-3">
+            <Text className="text-zinc-600">🔒</Text>
+         </View>
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -168,78 +203,43 @@ const PublicProfileScreen = () => {
 
   return (
     <View className="flex-1 bg-black">
-      <View className="border-b border-white/10 px-5 pb-6 pt-14">
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text className="text-sm font-bold text-zinc-400">Retour</Text>
+      <View className="flex-row items-center justify-between px-5 pt-14 pb-2 z-10">
+        <TouchableOpacity onPress={() => navigation.goBack()} className="p-1">
+          <ChevronLeft color="white" size={28} />
         </TouchableOpacity>
-
-        <View className="mt-6 h-24 w-24 items-center justify-center rounded-full bg-[#25F4EE]/15">
-          <Text className="text-3xl font-bold text-white">
-            {(profile?.username || profile?.full_name || 'U').charAt(0).toUpperCase()}
-          </Text>
-        </View>
-
-        <Text className="mt-5 text-3xl font-bold text-white">
-          @{profile?.username || 'utilisateur'}
+        <Text className="text-white font-bold text-base">
+           {profile?.username || 'Profil'}
         </Text>
-        {profile?.full_name ? (
-          <Text className="mt-2 text-base font-medium text-zinc-300">{profile.full_name}</Text>
-        ) : null}
-        <Text className="mt-3 text-sm leading-6 text-zinc-400">
-          {profile?.bio || "Ce createur n'a pas encore ajoute de bio."}
-        </Text>
-
-        {currentUserId !== userId ? (
-          <TouchableOpacity
-            className={`mt-5 rounded-2xl px-5 py-3 items-center ${
-              isFollowing ? 'border border-white/20 bg-transparent' : 'bg-[#FE2C55]'
-            }`}
-            disabled={followBusy}
-            onPress={handleToggleFollow}
-          >
-            <Text className={`font-bold ${isFollowing ? 'text-white' : 'text-white'}`}>
-              {isFollowing ? 'Abonne' : "S'abonner"}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-
-        <View className="mt-6 flex-row rounded-[28px] border border-white/10 bg-zinc-950 px-4 py-4">
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-white">{videos.length}</Text>
-            <Text className="mt-1 text-xs uppercase tracking-[1.5px] text-zinc-500">Videos</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-white">{followersCount}</Text>
-            <Text className="mt-1 text-xs uppercase tracking-[1.5px] text-zinc-500">Abonnes</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-white">{followingCount}</Text>
-            <Text className="mt-1 text-xs uppercase tracking-[1.5px] text-zinc-500">Abonnements</Text>
-          </View>
-        </View>
+        <View style={{ width: 28 }} />
       </View>
 
       <FlatList
         data={videos}
+        numColumns={3}
         keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 20, flexGrow: videos.length === 0 ? 1 : 0 }}
+        ListHeaderComponent={renderHeader}
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            style={{ width: COLUMN_WIDTH, height: COLUMN_WIDTH * 1.4 }}
+            className="border-[0.5px] border-black bg-zinc-900 overflow-hidden relative"
+            onPress={() => navigation.navigate('Home', { initialVideoId: item.id })}
+          >
+            <View className="flex-1 items-center justify-center">
+               <Play color="rgba(255,255,255,0.2)" size={40} />
+            </View>
+            <View className="absolute bottom-1 left-1 flex-row items-center">
+               <Play color="white" size={12} />
+               <Text className="text-white text-[10px] font-bold ml-1">
+                  {item.likes.length}
+               </Text>
+            </View>
+          </TouchableOpacity>
+        )}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center rounded-[28px] border border-white/10 bg-zinc-950 px-6 py-10">
-            <Text className="text-xl font-bold text-white">Aucune video publiee</Text>
-            <Text className="mt-2 text-center text-zinc-400">
-              Ce profil n'a pas encore partage de contenu.
-            </Text>
+          <View className="py-20 items-center justify-center">
+            <Text className="text-zinc-500 font-medium">Aucune vidéo publiée.</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <View className="mb-4 rounded-[28px] border border-white/10 bg-zinc-950 px-4 py-4">
-            <Text className="text-base font-semibold text-white">{item.caption || 'Sans legende'}</Text>
-            <View className="mt-3 flex-row">
-              <Text className="mr-4 text-sm text-zinc-400">{item.likes.length} j'aime</Text>
-              <Text className="text-sm text-zinc-400">{item.comments.length} commentaires</Text>
-            </View>
-          </View>
-        )}
       />
     </View>
   );

@@ -12,6 +12,11 @@ const AuthScreen = () => {
   const navigation = useNavigation<any>();
 
   async function handleAuth() {
+    if (!email || !password || (isSignUp && !username)) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (isSignUp) {
@@ -45,23 +50,24 @@ const AuthScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-white p-8 justify-center">
+    <View className="flex-1 bg-black p-8 justify-center">
       {navigation.canGoBack() ? (
         <TouchableOpacity className="absolute left-8 top-16 z-10" onPress={() => navigation.goBack()}>
-          <Text className="text-sm font-bold text-gray-500">Fermer</Text>
+          <Text className="text-sm font-bold text-zinc-400">Fermer</Text>
         </TouchableOpacity>
       ) : null}
 
-      <Text className="text-4xl font-bold text-center mb-8">TikTok Clone</Text>
+      <Text className="text-4xl font-bold text-center mb-10 text-white">TikTok Clone</Text>
       
-      <Text className="text-2xl font-semibold mb-6">
+      <Text className="text-2xl font-semibold mb-6 text-white">
         {isSignUp ? 'Créer un compte' : 'Connexion'}
       </Text>
 
       {isSignUp && (
         <TextInput
-          className="border border-gray-300 rounded-lg p-4 mb-4"
+          className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4 text-white"
           placeholder="Nom d'utilisateur"
+          placeholderTextColor="#71717a"
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -69,8 +75,9 @@ const AuthScreen = () => {
       )}
 
       <TextInput
-        className="border border-gray-300 rounded-lg p-4 mb-4"
+        className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4 text-white"
         placeholder="Email"
+        placeholderTextColor="#71717a"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -78,15 +85,16 @@ const AuthScreen = () => {
       />
 
       <TextInput
-        className="border border-gray-300 rounded-lg p-4 mb-6"
+        className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-8 text-white"
         placeholder="Mot de passe"
+        placeholderTextColor="#71717a"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
 
       <TouchableOpacity
-        className="bg-black rounded-lg p-4 items-center"
+        className="bg-[#FE2C55] rounded-2xl p-5 items-center"
         onPress={handleAuth}
         disabled={loading}
       >
@@ -100,10 +108,10 @@ const AuthScreen = () => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        className="mt-4 items-center"
+        className="mt-6 items-center"
         onPress={() => setIsSignUp(!isSignUp)}
       >
-        <Text className="text-blue-500">
+        <Text className="text-[#25F4EE] font-medium">
           {isSignUp ? 'Déjà un compte ? Connectez-vous' : "Pas de compte ? Inscrivez-vous"}
         </Text>
       </TouchableOpacity>

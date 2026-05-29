@@ -31,9 +31,11 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
       setLoading(true);
       setError(null);
       let targetUserIds: string[] | null = null;
+      
       if (mode === 'following') {
         if (!sessionUserId) {
           setVideos([]);
+          setLoading(false);
           return;
         }
 
@@ -42,13 +44,12 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
           .select('following_id')
           .eq('follower_id', sessionUserId);
 
-        if (followsError) {
-          throw followsError;
-        }
+        if (followsError) throw followsError;
 
         targetUserIds = (followRows || []).map(row => row.following_id);
         if (targetUserIds.length === 0) {
           setVideos([]);
+          setLoading(false);
           return;
         }
       }
@@ -67,27 +68,27 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
         query = query.in('user_id', targetUserIds);
       }
 
-      const { data, error } = await query;
+      const { data, error: fetchError } = await query;
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
-      const allVideos = data || [];
+      const normalizedVideos = (data || []).map(item => ({
+        ...item,
+        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+      })) as Video[];
+
       if (!isGuest) {
-        setVideos(allVideos);
-        return;
+        setVideos(normalizedVideos);
+      } else {
+        const guestVideos = normalizedVideos.filter(video => {
+          const username = video.profiles?.username?.toLowerCase() || '';
+          return PUBLIC_FEED_USERNAMES.includes(username);
+        });
+        setVideos(guestVideos.length > 0 ? guestVideos : normalizedVideos.slice(0, 10));
       }
-
-      const guestVideos = allVideos.filter(video => {
-        const username = video.profiles?.username?.toLowerCase() || '';
-        return PUBLIC_FEED_USERNAMES.includes(username);
-      });
-
-      // Fallback to a short curated list when the configured public creators
-      // are not present yet in the database.
-      setVideos(guestVideos.length > 0 ? guestVideos : allVideos.slice(0, 8));
-    } catch (error) {
-      console.error('Error fetching videos:', error);
-      setError("Impossible de charger les videos pour le moment.");
+    } catch (err: any) {
+      console.error('Error fetching videos:', err);
+      setError("Impossible de charger les vidéos.");
     } finally {
       setLoading(false);
     }

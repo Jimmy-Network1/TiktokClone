@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { Heart, MessageCircle, UserPlus, ChevronRight } from 'lucide-react-native';
+import { Heart, MessageCircle, UserPlus, ChevronRight, Bell } from 'lucide-react-native';
 
 interface NotificationItem {
   id: string;
@@ -64,7 +64,7 @@ const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
 
       setNotifications(normalized);
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Impossible de charger les notifications.');
+      console.error('Inbox load error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -75,117 +75,106 @@ const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
     loadNotifications();
   }, [loadNotifications]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadNotifications(true);
-  };
-
   const handleNotificationPress = async (notification: NotificationItem) => {
-    // Mark as read in background
     if (!notification.is_read) {
-      supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notification.id)
-        .then();
-      
-      setNotifications(prev => 
-        prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
-      );
+      supabase.from('notifications').update({ is_read: true }).eq('id', notification.id).then();
+      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n));
     }
 
     if (notification.type === 'follow') {
       navigation.navigate('PublicProfile', { userId: notification.actor.id });
     } else if (notification.video_id) {
-      // In a more complex app, we'd navigate to a single video view or scroll to it.
-      // For now, let's at least show something or navigate to comments if it's a comment.
       if (notification.type === 'comment') {
         navigation.navigate('Comments', { videoId: notification.video_id, session });
       } else {
-        // For likes, maybe just go to profile for now or alert
-        navigation.navigate('PublicProfile', { userId: notification.actor.id });
+        navigation.navigate('Home', { initialVideoId: notification.video_id });
       }
-    }
-  };
-
-  const renderIcon = (type: string) => {
-    switch (type) {
-      case 'like':
-        return <Heart size={20} color="#FE2C55" fill="#FE2C55" />;
-      case 'comment':
-        return <MessageCircle size={20} color="#25F4EE" fill="#25F4EE" />;
-      case 'follow':
-        return <UserPlus size={20} color="#fff" />;
-      default:
-        return null;
     }
   };
 
   const getMessage = (notification: NotificationItem) => {
     const name = notification.actor.username || 'Un utilisateur';
     switch (notification.type) {
-      case 'like':
-        return <Text><Text className="font-bold text-white">@{name}</Text> a aime votre video.</Text>;
-      case 'comment':
-        return <Text><Text className="font-bold text-white">@{name}</Text> a commente votre video.</Text>;
-      case 'follow':
-        return <Text><Text className="font-bold text-white">@{name}</Text> a commence a vous suivre.</Text>;
-      default:
-        return '';
+      case 'like': return "a aimé votre vidéo.";
+      case 'comment': return "a commenté votre vidéo.";
+      case 'follow': return "a commencé à vous suivre.";
+      default: return "";
     }
   };
 
-  if (loading && !refreshing) {
-    return (
-      <View className="flex-1 items-center justify-center bg-black">
-        <ActivityIndicator color="#fff" size="large" />
-      </View>
-    );
-  }
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'like': return <Heart size={14} color="white" fill="#FE2C55" />;
+      case 'comment': return <MessageCircle size={14} color="white" fill="#25F4EE" />;
+      case 'follow': return <UserPlus size={14} color="white" />;
+      default: return null;
+    }
+  };
 
   return (
     <View className="flex-1 bg-black">
-      <View className="border-b border-white/10 px-5 pb-4 pt-14">
-        <Text className="text-2xl font-bold text-white">Activite</Text>
+      <View className="flex-row items-center justify-center px-5 pt-14 pb-4 border-b border-white/5">
+        <Text className="text-white font-bold text-base">Toute l'activité</Text>
+        <TouchableOpacity className="absolute right-5 pt-14">
+           <Bell color="white" size={20} />
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={notifications}
-        keyExtractor={item => item.id}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#fff" />
-        }
-        contentContainerStyle={{ padding: 15, flexGrow: notifications.length === 0 ? 1 : 0 }}
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center rounded-[28px] border border-white/10 bg-zinc-950 px-6 py-10">
-            <Text className="text-xl font-bold text-white">Aucune activite</Text>
-            <Text className="mt-2 text-center text-zinc-400">
-              Les interactions avec vos videos et votre profil apparaitront ici.
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => handleNotificationPress(item)}
-            className={`mb-3 flex-row items-center rounded-2xl border border-white/5 bg-zinc-950 p-4 ${
-              !item.is_read ? 'border-l-4 border-l-[#FE2C55]' : ''
-            }`}
-          >
-            <View className="mr-4 h-12 w-12 items-center justify-center rounded-full bg-white/5">
-              {renderIcon(item.type)}
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm leading-5 text-zinc-300">
-                {getMessage(item)}
-              </Text>
-              <Text className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">
-                {new Date(item.created_at).toLocaleDateString()}
+      {loading && !refreshing ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#FE2C55" />
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={item => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => loadNotifications(true)} tintColor="#fff" />
+          }
+          contentContainerStyle={{ paddingVertical: 10, flexGrow: notifications.length === 0 ? 1 : 0 }}
+          ListEmptyComponent={
+            <View className="flex-1 items-center justify-center px-10">
+              <View className="bg-zinc-900 p-6 rounded-full mb-6">
+                 <MessageCircle color="#3f3f46" size={48} />
+              </View>
+              <Text className="text-white font-bold text-xl text-center">Aucune activité pour le moment</Text>
+              <Text className="text-zinc-500 text-center mt-2">
+                 Les notifications concernant vos likes, commentaires et abonnements apparaîtront ici.
               </Text>
             </View>
-            <ChevronRight size={16} color="#3f3f46" />
-          </TouchableOpacity>
-        )}
-      />
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => handleNotificationPress(item)}
+              className="px-5 py-4 flex-row items-center"
+            >
+              <View className="relative">
+                <View className="h-12 w-12 rounded-full bg-zinc-900 items-center justify-center border border-white/5">
+                   <Text className="text-white font-bold text-lg">
+                      {(item.actor.username || 'U').charAt(0).toUpperCase()}
+                   </Text>
+                </View>
+                <View className="absolute -bottom-1 -right-1 bg-black rounded-full p-1">
+                   {getIcon(item.type)}
+                </View>
+              </View>
+              
+              <View className="flex-1 ml-4">
+                <Text className="text-white text-sm">
+                   <Text className="font-bold">@{item.actor.username || 'utilisateur'}</Text> {getMessage(item)}
+                </Text>
+                <Text className="text-zinc-500 text-[10px] mt-1 uppercase font-medium">
+                   {new Date(item.created_at).toLocaleDateString()}
+                </Text>
+              </View>
+              
+              {!item.is_read && (
+                <View className="h-2 w-2 bg-[#FE2C55] rounded-full ml-2" />
+              )}
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 };

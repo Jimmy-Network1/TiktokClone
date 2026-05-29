@@ -19,8 +19,8 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ session }) => {
   if (!session) {
     return (
       <AuthWall
-        title="Publication reservee"
-        message="Creer un compte vous permet d'uploader vos videos, d'ajouter une legende et de publier dans votre feed."
+        title="Publication réservée"
+        message="Créer un compte vous permet d'uploader vos vidéos, d'ajouter une légende et de publier dans votre feed."
         onPress={() => navigation.navigate('Auth')}
       />
     );
@@ -46,14 +46,14 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ session }) => {
     setUploading(true);
     try {
       const asset = video.assets[0];
-      const fileName = `${Date.now()}-${asset.fileName}`;
+      const fileName = `${Date.now()}-${asset.fileName || 'video.mp4'}`;
       const filePath = `public/${fileName}`;
 
       // 1. Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Utilisateur non connecté');
 
-      // 2. Prepare file data (Handling different platforms might need more logic)
+      // 2. Prepare file data
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
@@ -89,47 +89,60 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ session }) => {
       setVideo(null);
       setCaption('');
     } catch (error: any) {
-      Alert.alert('Erreur', error.message);
+      Alert.alert('Erreur', error.message || 'Le téléchargement a échoué.');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <View className="flex-1 bg-white p-6 pt-12">
-      <Text className="text-2xl font-bold mb-6">Nouvelle publication</Text>
+    <View className="flex-1 bg-black p-6 pt-12">
+      <Text className="text-3xl font-bold mb-8 text-white">Nouvelle publication</Text>
       
       <TouchableOpacity 
-        className="w-full h-64 bg-gray-100 rounded-2xl justify-center items-center mb-6 overflow-hidden"
+        className="w-full h-80 bg-zinc-950 border border-dashed border-white/20 rounded-3xl justify-center items-center mb-8 overflow-hidden"
         onPress={pickVideo}
       >
         {video?.assets ? (
-          <View className="items-center">
-            <Text className="text-green-500 font-bold">Vidéo sélectionnée</Text>
-            <Text className="text-gray-500 text-xs">{video.assets[0].fileName}</Text>
+          <View className="items-center px-4">
+            <View className="bg-green-500/10 p-4 rounded-full mb-3">
+               <Text className="text-green-500 text-lg">✓</Text>
+            </View>
+            <Text className="text-green-500 font-bold text-center">Vidéo sélectionnée</Text>
+            <Text className="text-zinc-500 text-xs mt-1 text-center" numberOfLines={1}>
+              {video.assets[0].fileName || 'vidéo sélectionnée'}
+            </Text>
           </View>
         ) : (
-          <Text className="text-gray-400">Appuyez pour choisir une vidéo</Text>
+          <View className="items-center">
+            <View className="bg-white/5 p-6 rounded-full mb-4">
+               <Text className="text-white text-4xl">+</Text>
+            </View>
+            <Text className="text-zinc-400 font-medium">Appuyez pour choisir une vidéo</Text>
+            <Text className="text-zinc-600 text-xs mt-2">MP4, MOV jusqu'à 50 Mo</Text>
+          </View>
         )}
       </TouchableOpacity>
 
       <TextInput
-        className="border border-gray-200 rounded-xl p-4 mb-6 h-32 text-top"
+        className="bg-zinc-950 border border-white/10 rounded-2xl p-4 mb-8 h-32 text-white"
         placeholder="Ajouter une légende..."
+        placeholderTextColor="#71717a"
         multiline
+        textAlignVertical="top"
         value={caption}
         onChangeText={setCaption}
       />
 
       <TouchableOpacity
-        className={`rounded-xl p-4 items-center ${uploading ? 'bg-gray-400' : 'bg-black'}`}
+        className={`rounded-2xl p-5 items-center ${uploading ? 'bg-zinc-800' : 'bg-[#FE2C55]'}`}
         onPress={handleUpload}
         disabled={uploading}
       >
         {uploading ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Text className="text-white font-bold text-lg">Publier</Text>
+          <Text className="text-white font-bold text-lg">Publier maintenant</Text>
         )}
       </TouchableOpacity>
     </View>

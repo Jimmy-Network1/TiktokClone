@@ -18,15 +18,6 @@ const Stack = createNativeStackNavigator();
 
 import UploadScreen from '../screens/UploadScreen';
 
-const LockedPlaceholder = ({ title }: { title: string }) => (
-  <View className="flex-1 items-center justify-center bg-black px-6">
-    <Text className="text-2xl font-bold text-white">{title}</Text>
-    <Text className="mt-3 text-center text-zinc-400">
-      Cette section est reservee aux utilisateurs connectes.
-    </Text>
-  </View>
-);
-
 interface MainTabsProps {
   session: Session | null;
 }
@@ -45,50 +36,62 @@ const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#000', borderTopWidth: 0 },
+        tabBarStyle: { backgroundColor: '#000', borderTopWidth: 0, height: 60, paddingBottom: 8 },
         tabBarActiveTintColor: '#fff',
         tabBarInactiveTintColor: '#888',
       }}
     >
       <Tab.Screen
         name="Home"
-        children={() => <FeedScreen isGuest={!session?.user} session={session} />}
         options={{
-          tabBarIcon: ({ color }) => <Home color={color} size={24} />,
+          tabBarIcon: ({ color }) => <Home color={color} size={26} />,
+          tabBarLabel: 'Accueil'
         }}
-      />
+      >
+        {(props) => <FeedScreen {...props} isGuest={!session?.user} session={session} />}
+      </Tab.Screen>
       <Tab.Screen
         name="Discover"
         component={DiscoverScreen}
         options={{
-          tabBarIcon: ({ color }) => <Search color={color} size={24} />,
+          tabBarIcon: ({ color }) => <Search color={color} size={26} />,
+          tabBarLabel: 'Amis'
         }}
       />
       <Tab.Screen
         name="Upload"
-        children={() => <UploadScreen session={session} />}
         options={{
-          tabBarIcon: ({ color }) => <PlusSquare color={color} size={32} />,
+          tabBarIcon: () => (
+            <View className="bg-white rounded-lg px-3 py-1 mt-1">
+               <PlusSquare color="black" size={24} />
+            </View>
+          ),
           tabBarLabel: () => null,
         }}
         listeners={{ tabPress: requireAuth }}
-      />
+      >
+        {(props) => <UploadScreen {...props} session={session} />}
+      </Tab.Screen>
       <Tab.Screen
         name="Inbox"
-        children={() => <InboxScreen session={session} />}
         options={{
-          tabBarIcon: ({ color }) => <MessageCircle color={color} size={24} />,
+          tabBarIcon: ({ color }) => <MessageCircle color={color} size={26} />,
+          tabBarLabel: 'Boîte'
         }}
         listeners={{ tabPress: requireAuth }}
-      />
+      >
+        {(props) => <InboxScreen {...props} session={session} />}
+      </Tab.Screen>
       <Tab.Screen
         name="Profile"
-        children={() => <ProfileScreen session={session} />}
         options={{
-          tabBarIcon: ({ color }) => <User color={color} size={24} />,
+          tabBarIcon: ({ color }) => <User color={color} size={26} />,
+          tabBarLabel: 'Profil'
         }}
         listeners={{ tabPress: requireAuth }}
-      />
+      >
+        {(props) => <ProfileScreen {...props} session={session} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 };
