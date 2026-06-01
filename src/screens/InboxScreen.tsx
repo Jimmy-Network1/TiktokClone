@@ -1,17 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   Text,
   TouchableOpacity,
   View,
+  StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { Heart, MessageCircle, UserPlus, ChevronRight, Bell } from 'lucide-react-native';
+import { useAuth } from '../hooks/useAuth';
+import { Heart, MessageCircle, UserPlus, Send } from 'lucide-react-native';
+
 
 interface NotificationItem {
   id: string;
@@ -26,11 +27,10 @@ interface NotificationItem {
   video_id?: string;
 }
 
-interface InboxScreenProps {
-  session: Session | null;
-}
+interface InboxScreenProps {}
 
-const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
+const InboxScreen: React.FC<InboxScreenProps> = () => {
+  const { session } = useAuth();
   const navigation = useNavigation<any>();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +85,7 @@ const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
       navigation.navigate('PublicProfile', { userId: notification.actor.id });
     } else if (notification.video_id) {
       if (notification.type === 'comment') {
-        navigation.navigate('Comments', { videoId: notification.video_id, session });
+        navigation.navigate('Comments', { videoId: notification.video_id });
       } else {
         navigation.navigate('Home', { initialVideoId: notification.video_id });
       }
@@ -93,7 +93,6 @@ const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
   };
 
   const getMessage = (notification: NotificationItem) => {
-    const name = notification.actor.username || 'Un utilisateur';
     switch (notification.type) {
       case 'like': return "a aimé votre vidéo.";
       case 'comment': return "a commenté votre vidéo.";
@@ -113,10 +112,14 @@ const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
 
   return (
     <View className="flex-1 bg-black">
-      <View className="flex-row items-center justify-center px-5 pt-14 pb-4 border-b border-white/5">
+      <View className="flex-row items-center justify-between px-5 pt-14 pb-4 border-b border-white/5">
+        <View className="w-10" />
         <Text className="text-white font-bold text-base">Toute l'activité</Text>
-        <TouchableOpacity className="absolute right-5 pt-14">
-           <Bell color="white" size={20} />
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Conversations')}
+          className="p-1"
+        >
+           <Send color="white" size={20} />
         </TouchableOpacity>
       </View>
 
@@ -131,7 +134,8 @@ const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => loadNotifications(true)} tintColor="#fff" />
           }
-          contentContainerStyle={{ paddingVertical: 10, flexGrow: notifications.length === 0 ? 1 : 0 }}
+          contentContainerStyle={[styles.listContent, notifications.length === 0 ? styles.emptyList : null]}
+          className="py-2"
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center px-10">
               <View className="bg-zinc-900 p-6 rounded-full mb-6">
@@ -178,5 +182,14 @@ const InboxScreen: React.FC<InboxScreenProps> = ({ session }) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  listContent: {
+    // Other styles if needed
+  },
+  emptyList: {
+    flexGrow: 1,
+  },
+});
 
 export default InboxScreen;

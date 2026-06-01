@@ -9,11 +9,13 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Send, ChevronDown } from 'lucide-react-native';
+
+import { useAuth } from '../hooks/useAuth';
 
 interface CommentItem {
   id: string;
@@ -28,15 +30,13 @@ interface CommentItem {
 
 interface CommentsRouteParams {
   videoId: string;
-  caption?: string;
-  ownerUsername?: string;
-  session: Session | null;
 }
 
 const CommentsScreen = () => {
+  const { session } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute();
-  const { videoId, caption, ownerUsername, session } = route.params as CommentsRouteParams;
+  const { videoId } = route.params as CommentsRouteParams;
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -82,17 +82,17 @@ const CommentsScreen = () => {
 
     try {
       setSubmitting(true);
-      const { error } = await supabase.from('comments').insert({
+      const { error: insertError } = await supabase.from('comments').insert({
         video_id: videoId,
         user_id: session.user.id,
         content: trimmed,
       });
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       setContent('');
       loadComments();
-    } catch (error: any) {
+    } catch {
       Alert.alert('Erreur', "Impossible d'envoyer le commentaire.");
     } finally {
       setSubmitting(false);
@@ -126,7 +126,8 @@ const CommentsScreen = () => {
         <FlatList
           data={comments}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 15, paddingBottom: 100 }}
+          contentContainerStyle={styles.listContent}
+          className="px-4 pt-4"
           ListEmptyComponent={
             <View className="py-20 items-center">
               <Text className="text-zinc-500 font-medium">Soyez le premier à commenter.</Text>
@@ -186,5 +187,11 @@ const CommentsScreen = () => {
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  listContent: {
+    paddingBottom: 100,
+  },
+});
 
 export default CommentsScreen;

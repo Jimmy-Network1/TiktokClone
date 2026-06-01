@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 export interface Video {
@@ -26,7 +26,7 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -92,11 +92,11 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
     } finally {
       setLoading(false);
     }
-  };
+  }, [isGuest, mode, sessionUserId]);
 
   useEffect(() => {
     fetchVideos();
-  }, [isGuest, mode, sessionUserId]);
+  }, [fetchVideos]);
 
   return { videos, loading, error, refresh: fetchVideos };
 };

@@ -9,20 +9,29 @@ import PublicProfileScreen from '../screens/PublicProfileScreen';
 import DiscoverScreen from '../screens/DiscoverScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import InboxScreen from '../screens/InboxScreen';
+import ConversationsScreen from '../screens/ConversationsScreen';
+import ChatScreen from '../screens/ChatScreen';
+import UploadScreen from '../screens/UploadScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
-import { Session } from '@supabase/supabase-js';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { useAuth } from '../hooks/useAuth';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-import UploadScreen from '../screens/UploadScreen';
+const HomeIcon = ({ color, size }: { color: string; size: number }) => <Home color={color} size={size} />;
+const DiscoverIcon = ({ color, size }: { color: string; size: number }) => <Search color={color} size={size} />;
+const PlusIcon = () => (
+  <View className="bg-white rounded-lg px-3 py-1">
+    <PlusSquare color="#000" size={24} />
+  </View>
+);
+const InboxIcon = ({ color, size }: { color: string; size: number }) => <MessageCircle color={color} size={size} />;
+const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User color={color} size={size} />;
 
-interface MainTabsProps {
-  session: Session | null;
-}
+const MainTabs: React.FC = () => {
+  const { session } = useAuth();
 
-const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
   const requireAuth = ({ navigation, preventDefault }: any) => {
     if (session?.user) {
       return;
@@ -43,67 +52,55 @@ const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
     >
       <Tab.Screen
         name="Home"
+        component={FeedScreen}
         options={{
-          tabBarIcon: ({ color }) => <Home color={color} size={26} />,
+          tabBarIcon: HomeIcon,
           tabBarLabel: 'Accueil'
         }}
-      >
-        {(props) => <FeedScreen {...props} isGuest={!session?.user} session={session} />}
-      </Tab.Screen>
+      />
       <Tab.Screen
         name="Discover"
         component={DiscoverScreen}
         options={{
-          tabBarIcon: ({ color }) => <Search color={color} size={26} />,
+          tabBarIcon: DiscoverIcon,
           tabBarLabel: 'Amis'
         }}
       />
       <Tab.Screen
         name="Upload"
+        component={UploadScreen}
         options={{
-          tabBarIcon: () => (
-            <View className="bg-white rounded-lg px-3 py-1 mt-1">
-               <PlusSquare color="black" size={24} />
-            </View>
-          ),
+          tabBarIcon: PlusIcon,
           tabBarLabel: () => null,
         }}
         listeners={{ tabPress: requireAuth }}
-      >
-        {(props) => <UploadScreen {...props} session={session} />}
-      </Tab.Screen>
+      />
       <Tab.Screen
         name="Inbox"
+        component={InboxScreen}
         options={{
-          tabBarIcon: ({ color }) => <MessageCircle color={color} size={26} />,
+          tabBarIcon: InboxIcon,
           tabBarLabel: 'Boîte'
         }}
         listeners={{ tabPress: requireAuth }}
-      >
-        {(props) => <InboxScreen {...props} session={session} />}
-      </Tab.Screen>
+      />
       <Tab.Screen
         name="Profile"
+        component={ProfileScreen}
         options={{
-          tabBarIcon: ({ color }) => <User color={color} size={26} />,
+          tabBarIcon: ProfileIcon,
           tabBarLabel: 'Profil'
         }}
         listeners={{ tabPress: requireAuth }}
-      >
-        {(props) => <ProfileScreen {...props} session={session} />}
-      </Tab.Screen>
+      />
     </Tab.Navigator>
   );
 };
 
-interface RootNavigationProps {
-  session: Session | null;
-}
-
-const RootNavigation: React.FC<RootNavigationProps> = ({ session }) => {
+const RootNavigation: React.FC = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Main">{() => <MainTabs session={session} />}</Stack.Screen>
+      <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen
         name="Auth"
         component={AuthScreen}
@@ -120,6 +117,8 @@ const RootNavigation: React.FC<RootNavigationProps> = ({ session }) => {
         component={EditProfileScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
+      <Stack.Screen name="Conversations" component={ConversationsScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 };

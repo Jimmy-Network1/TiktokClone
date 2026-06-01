@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from 'react-native';
-import { Session } from '@supabase/supabase-js';
+import { Alert, FlatList, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import AuthWall from '../components/AuthWall';
 import { Play } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useAuth } from '../hooks/useAuth';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = width / 3;
 
-interface ProfileScreenProps {
-  session: Session | null;
-}
+interface ProfileScreenProps {}
 
 interface ProfileData {
   id: string;
@@ -30,7 +30,8 @@ interface ProfileVideo {
   comments: { id: string }[];
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
+const ProfileScreen: React.FC<ProfileScreenProps> = () => {
+  const { session } = useAuth();
   const navigation = useNavigation<any>();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [videos, setVideos] = useState<ProfileVideo[]>([]);
@@ -47,8 +48,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
       const [
         { data: profileData, error: profileError },
         { data: videosData, error: videosError },
-        { count: followers, error: followersError },
-        { count: following, error: followingError },
+        { count: followers },
+        { count: following },
       ] = await Promise.all([
         supabase
           .from('profiles')
@@ -85,7 +86,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
       setVideos((videosData as ProfileVideo[]) || []);
       setFollowersCount(followers || 0);
       setFollowingCount(following || 0);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Profile load error:', error);
       Alert.alert('Erreur', 'Impossible de charger votre profil.');
     } finally {
@@ -172,7 +173,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
   );
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-black" edges={['top']}>
       <FlatList
         data={videos}
         numColumns={3}
@@ -207,7 +208,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ session }) => {
           ) : null
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

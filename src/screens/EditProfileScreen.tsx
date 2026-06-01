@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
-import { ChevronLeft, Camera } from 'lucide-react-native';
+import { Camera } from 'lucide-react-native';
 
 const EditProfileScreen = () => {
   const navigation = useNavigation<any>();
@@ -38,8 +38,8 @@ const EditProfileScreen = () => {
         setUsername(data.username || '');
         setFullName(data.full_name || '');
         setBio(data.bio || '');
-      } catch (error: any) {
-        console.error('Edit profile load error:', error);
+      } catch (err: any) {
+        console.error('Edit profile load error:', err);
       } finally {
         setLoading(false);
       }
@@ -67,7 +67,7 @@ const EditProfileScreen = () => {
 
       Alert.alert('Succès', 'Votre profil a été mis à jour.');
       navigation.goBack();
-    } catch (error: any) {
+    } catch {
       Alert.alert('Erreur', "Impossible d'enregistrer les modifications.");
     } finally {
       setSaving(false);

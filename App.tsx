@@ -8,7 +8,7 @@ import { supabase } from './src/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
 function App(): React.JSX.Element {
-  const [session, setSession] = useState<Session | null>(null);
+  const [_, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,7 +16,7 @@ function App(): React.JSX.Element {
     setError(null);
     setAuthReady(false);
 
-    const timeoutPromise = new Promise((_, reject) =>
+    const timeoutPromise = new Promise((__unused, reject) =>
       setTimeout(() => reject(new Error('Le serveur ne répond pas (Timeout)')), 8000)
     );
 
@@ -42,8 +42,8 @@ function App(): React.JSX.Element {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    } = supabase.auth.onAuthStateChange((_event, _session) => {
+      setSession(_session);
     });
 
     return () => subscription.unsubscribe();
@@ -51,13 +51,13 @@ function App(): React.JSX.Element {
 
   if (error) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>{error}</Text>
+      <View className="flex-1 bg-black items-center justify-center p-5">
+        <Text className="text-white text-lg font-bold text-center">{error}</Text>
         <TouchableOpacity 
           onPress={initAuth}
-          style={{ marginTop: 20, backgroundColor: '#FE2C55', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
+          className="mt-5 bg-[#FE2C55] px-8 py-3 rounded-full"
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Réessayer</Text>
+          <Text className="text-white font-bold">Réessayer</Text>
         </TouchableOpacity>
       </View>
     );
@@ -65,9 +65,9 @@ function App(): React.JSX.Element {
 
   if (!authReady) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
+      <View className="flex-1 bg-black items-center justify-center">
         <ActivityIndicator size="large" color="#FE2C55" />
-        <Text style={{ color: '#fff', marginTop: 15, fontSize: 12, opacity: 0.5 }}>Initialisation de TikTok...</Text>
+        <Text className="text-white mt-4 text-xs opacity-50">Initialisation de TikTok...</Text>
       </View>
     );
   }
@@ -76,7 +76,7 @@ function App(): React.JSX.Element {
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <NavigationContainer>
-        <RootNavigation session={session} />
+        <RootNavigation />
       </NavigationContainer>
     </SafeAreaProvider>
   );

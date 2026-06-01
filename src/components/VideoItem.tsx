@@ -1,9 +1,8 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable } from 'react-native';
+import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator } from 'react-native';
 import Video from 'react-native-video';
 import { Heart, MessageCircle, Share2, Music2 } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import Animated, { 
   useSharedValue, 
@@ -12,8 +11,9 @@ import Animated, {
   withSequence, 
   withDelay,
   withTiming,
-  runOnJS
 } from 'react-native-reanimated';
+
+import { useAuth } from '../hooks/useAuth';
 
 const { height, width } = Dimensions.get('window');
 
@@ -21,6 +21,7 @@ interface VideoItemProps {
   video: {
     id: string;
     url: string;
+    thumbnailUrl: string | null;
     userId: string;
     user: string;
     fullName?: string | null;
@@ -29,13 +30,14 @@ interface VideoItemProps {
     comments: { id: string }[];
     shares: string;
   };
-  session: Session | null;
 }
 
-const VideoItem: React.FC<VideoItemProps> = ({ video, session }) => {
+const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
+  const { session } = useAuth();
   const isFocused = useIsFocused();
   const navigation = useNavigation<any>();
   const [likes, setLikes] = useState(video.likes);
+  const [isLoading, setIsLoading] = useState(true);
   const lastTap = useRef<number>(0);
   
   const heartScale = useSharedValue(0);
@@ -132,7 +134,6 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, session }) => {
       videoId: video.id,
       caption: video.description,
       ownerUsername: video.user,
-      session,
     });
   };
 
@@ -152,8 +153,20 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, session }) => {
           repeat
           muted={false}
           paused={!isFocused}
+          onLoad={() => setIsLoading(false)}
+          onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
+          poster={video.thumbnailUrl || undefined}
+          posterResizeMode="cover"
+          playInBackground={false}
+          playWhenInactive={false}
         />
       </Pressable>
+
+      {isLoading && (
+        <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/20">
+          <ActivityIndicator color="white" size="large" />
+        </View>
+      )}
 
       {/* Double Tap Heart Overlay */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none" className="items-center justify-center">

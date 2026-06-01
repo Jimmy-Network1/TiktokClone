@@ -7,25 +7,24 @@ import {
   ActivityIndicator,
   Text,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
-import { Session } from '@supabase/supabase-js';
 import VideoItem from '../components/VideoItem';
 import { FeedMode, useVideos } from '../hooks/useVideos';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAuth } from '../hooks/useAuth';
 
 const { height } = Dimensions.get('window');
 
 interface FeedScreenProps {
-  isGuest?: boolean;
-  session?: Session | null;
   route?: any;
 }
 
-const FeedScreen: React.FC<FeedScreenProps> = ({ isGuest = false, session = null, route }) => {
+const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
+  const { session } = useAuth();
+  const isGuest = !session?.user;
   const [mode, setMode] = useState<FeedMode>('for_you');
   const { videos, loading, error, refresh } = useVideos(isGuest, mode, session?.user?.id);
   const [refreshing, setRefreshing] = useState(false);
-  const navigation = useNavigation<any>();
   const flatListRef = useRef<FlatList>(null);
   
   const initialVideoId = route?.params?.initialVideoId;
@@ -106,6 +105,10 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ isGuest = false, session = null
         snapToInterval={height}
         snapToAlignment="start"
         decelerationRate="fast"
+        windowSize={5}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        removeClippedSubviews={Platform.OS === 'android'}
         getItemLayout={(_, index) => ({
           length: height,
           offset: height * index,
@@ -122,6 +125,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ isGuest = false, session = null
             video={{
               id: item.id,
               url: item.video_url,
+              thumbnailUrl: item.thumbnail_url,
               userId: item.user_id,
               user: item.profiles?.username || 'anonymous',
               fullName: item.profiles?.full_name,
@@ -130,7 +134,6 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ isGuest = false, session = null
               comments: item.comments || [],
               shares: '0',
             }} 
-            session={session}
           />
         )}
         refreshControl={

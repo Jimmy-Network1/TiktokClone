@@ -19,6 +19,14 @@ interface DiscoverVideo {
   } | null;
 }
 
+type DiscoverItem = DiscoverProfile | DiscoverVideo;
+
+interface DiscoverSection {
+  title: string;
+  data: DiscoverItem[];
+  type: 'profile' | 'video';
+}
+
 const DiscoverScreen = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
@@ -92,7 +100,7 @@ const DiscoverScreen = () => {
     loadDiscoverData(query);
   }, [query, loadDiscoverData]);
 
-  const sections = [
+  const sections: DiscoverSection[] = [
     { title: 'Créateurs', data: profiles, type: 'profile' },
     { title: 'Vidéos', data: videos, type: 'video' },
   ];
@@ -118,9 +126,9 @@ const DiscoverScreen = () => {
           <ActivityIndicator color="#fff" size="large" />
         </View>
       ) : (
-        <SectionList
+        <SectionList<DiscoverItem, DiscoverSection>
           sections={sections}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.id + index}
           renderSectionHeader={({ section: { title, data } }) => (
             <View className="bg-black px-5 py-3">
               <Text className="text-xl font-bold text-white">{title}</Text>

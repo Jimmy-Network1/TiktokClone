@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
-import { Play, ChevronLeft } from 'lucide-react-native';
+import { Play, ChevronLeft, MessageCircle } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = width / 3;
@@ -50,8 +50,8 @@ const PublicProfileScreen = () => {
       const [
         { data: profileData, error: profileError },
         { data: videosData, error: videosError },
-        { count: followers, error: followersError },
-        { count: following, error: followingError },
+        { count: followers },
+        { count: following },
       ] = await Promise.all([
         supabase.from('profiles').select('id, username, full_name, bio').eq('id', userId).single(),
         supabase
@@ -88,8 +88,8 @@ const PublicProfileScreen = () => {
         if (followStateError) throw followStateError;
         setIsFollowing(!!followRow);
       }
-    } catch (error: any) {
-      console.error('Public profile load error:', error);
+    } catch {
+      console.error('Public profile load error');
       Alert.alert('Erreur', 'Impossible de charger ce profil.');
     } finally {
       setLoading(false);
@@ -126,12 +126,77 @@ const PublicProfileScreen = () => {
           following_id: userId,
         });
       }
-    } catch (error: any) {
+    } catch {
       setIsFollowing(previousState);
       setFollowersCount(count => (previousState ? count + 1 : Math.max(0, count - 1)));
       Alert.alert('Erreur', "L'action a échoué.");
     } finally {
       setFollowBusy(false);
+    }
+  };
+
+  const handleMessagePress = async () => {
+    if (!currentUserId) {
+      navigation.navigate('Auth');
+      return;
+    }
+
+    if (currentUserId === userId) return;
+
+    try {
+      // 1. Check if conversation already exists
+      const { data: participations, error: partError } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', currentUserId);
+
+      if (partError) throw partError;
+
+      const myConvIds = participations.map(p => p.conversation_id);
+
+      const { data: commonConv, error: commonError } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .in('conversation_id', myConvIds)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (commonError) throw commonError;
+
+      if (commonConv) {
+        // Conversation exists
+        navigation.navigate('Chat', { 
+          conversationId: commonConv.conversation_id, 
+          otherUser: profile 
+        });
+      } else {
+        // Create new conversation
+        const { data: newConv, error: newConvError } = await supabase
+          .from('conversations')
+          .insert({})
+          .select()
+          .single();
+
+        if (newConvError) throw newConvError;
+
+        // Add both participants
+        const { error: partAddError } = await supabase
+          .from('conversation_participants')
+          .insert([
+            { conversation_id: newConv.id, user_id: currentUserId },
+            { conversation_id: newConv.id, user_id: userId }
+          ]);
+
+        if (partAddError) throw partAddError;
+
+        navigation.navigate('Chat', { 
+          conversationId: newConv.id, 
+          otherUser: profile 
+        });
+      }
+    } catch {
+      console.error('Error starting chat');
+      Alert.alert('Erreur', 'Impossible de démarrer la conversation.');
     }
   };
 
@@ -163,17 +228,26 @@ const PublicProfileScreen = () => {
       </View>
 
       {currentUserId !== userId && (
-        <TouchableOpacity
-          className={`mt-6 w-48 rounded-md py-3 items-center ${
-            isFollowing ? 'bg-zinc-900 border border-white/10' : 'bg-[#FE2C55]'
-          }`}
-          disabled={followBusy}
-          onPress={handleToggleFollow}
-        >
-          <Text className="text-white font-bold text-sm">
-            {isFollowing ? 'Abonné' : "S'abonner"}
-          </Text>
-        </TouchableOpacity>
+        <View className="flex-row mt-6 space-x-2">
+          <TouchableOpacity
+            className={`w-40 rounded-md py-3 items-center ${
+              isFollowing ? 'bg-zinc-900 border border-white/10' : 'bg-[#FE2C55]'
+            }`}
+            disabled={followBusy}
+            onPress={handleToggleFollow}
+          >
+            <Text className="text-white font-bold text-sm">
+              {isFollowing ? 'Abonné' : "S'abonner"}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            className="w-12 rounded-md bg-zinc-900 border border-white/10 py-3 items-center justify-center"
+            onPress={handleMessagePress}
+          >
+            <MessageCircle color="white" size={20} />
+          </TouchableOpacity>
+        </View>
       )}
 
       {profile?.bio && (
@@ -210,7 +284,7 @@ const PublicProfileScreen = () => {
         <Text className="text-white font-bold text-base">
            {profile?.username || 'Profil'}
         </Text>
-        <View style={{ width: 28 }} />
+        <View className="w-7" />
       </View>
 
       <FlatList
