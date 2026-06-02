@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -7,21 +7,38 @@ import {
   ActivityIndicator,
   Text,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import VideoItem from '../components/VideoItem';
-import { useVideos } from '../hooks/useVideos';
-import { useNavigation } from '@react-navigation/native';
+import { FeedMode, useVideos } from '../hooks/useVideos';
+import { useAuth } from '../hooks/useAuth';
 
 const { height } = Dimensions.get('window');
 
 interface FeedScreenProps {
-  isGuest?: boolean;
+  route?: any;
 }
 
-const FeedScreen: React.FC<FeedScreenProps> = ({ isGuest = false }) => {
-  const { videos, loading, refresh } = useVideos(isGuest);
+const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
+  const { session } = useAuth();
+  const isGuest = !session?.user;
+  const [mode, setMode] = useState<FeedMode>('for_you');
+  const { videos, loading, error, refresh } = useVideos(isGuest, mode, session?.user?.id);
   const [refreshing, setRefreshing] = useState(false);
-  const navigation = useNavigation<any>();
+  const flatListRef = useRef<FlatList>(null);
+  
+  const initialVideoId = route?.params?.initialVideoId;
+
+  useEffect(() => {
+    if (initialVideoId && videos.length > 0) {
+      const index = videos.findIndex(v => v.id === initialVideoId);
+      if (index !== -1) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index, animated: false });
+        }, 100);
+      }
+    }
+  }, [initialVideoId, videos]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -32,50 +49,90 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ isGuest = false }) => {
   if (loading && !refreshing) {
     return (
       <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color="#FE2C55" />
+      </View>
+    );
+  }
+
+  if (error && videos.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center bg-black px-6">
+        <Text className="text-2xl font-bold text-white">Flux indisponible</Text>
+        <Text className="mt-2 text-center text-zinc-400">{error}</Text>
+        <TouchableOpacity
+          className="mt-6 rounded-full bg-[#FE2C55] px-5 py-3"
+          onPress={onRefresh}
+        >
+          <Text className="font-bold text-white">Réessayer</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View className="flex-1 bg-black">
-      {isGuest ? (
-        <View className="absolute left-0 right-0 top-0 z-10 px-4 pt-4">
-          <View className="rounded-3xl border border-white/10 bg-zinc-950/90 px-4 py-3">
-            <Text className="text-sm font-semibold text-white">Mode invite</Text>
-            <Text className="mt-1 text-xs leading-5 text-zinc-300">
-              Vous voyez uniquement une selection de videos publiques. Connectez-vous pour
-              publier, acceder au profil et aux autres sections.
+      {/* Header Tabs */}
+      {!isGuest && (
+        <View className="absolute left-0 right-0 top-0 z-10 flex-row justify-center items-center pt-14 pb-4 bg-transparent">
+          <TouchableOpacity onPress={() => setMode('following')} className="px-4">
+            <Text className={`text-base font-bold ${mode === 'following' ? 'text-white' : 'text-zinc-500'}`}>
+              Abonnements
             </Text>
-            <TouchableOpacity
-              className="mt-3 self-start rounded-full bg-[#FE2C55] px-4 py-2"
-              onPress={() => navigation.navigate('Auth')}
-            >
-              <Text className="text-xs font-bold text-white">Se connecter</Text>
-            </TouchableOpacity>
-          </View>
+            {mode === 'following' && <View className="h-0.5 w-6 bg-white self-center mt-1" />}
+          </TouchableOpacity>
+          <View className="w-0.5 h-3 bg-white/20" />
+          <TouchableOpacity onPress={() => setMode('for_you')} className="px-4">
+            <Text className={`text-base font-bold ${mode === 'for_you' ? 'text-white' : 'text-zinc-500'}`}>
+              Pour toi
+            </Text>
+            {mode === 'for_you' && <View className="h-0.5 w-6 bg-white self-center mt-1" />}
+          </TouchableOpacity>
         </View>
-      ) : null}
+      )}
+
+      {isGuest && (
+        <View className="absolute left-0 right-0 top-0 z-10 flex-row justify-center items-center pt-14 bg-transparent">
+           <Text className="text-white font-bold text-lg">Pour toi</Text>
+           <View className="h-0.5 w-6 bg-white absolute bottom-[-6px] self-center" />
+        </View>
+      )}
 
       <FlatList
+        ref={flatListRef}
         data={videos}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         snapToInterval={height}
         snapToAlignment="start"
         decelerationRate="fast"
-        contentContainerStyle={{ paddingTop: isGuest ? 88 : 0 }}
+        windowSize={5}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        removeClippedSubviews={Platform.OS === 'android'}
+        getItemLayout={(_, index) => ({
+          length: height,
+          offset: height * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: false });
+          }, 500);
+        }}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <VideoItem 
             video={{
               id: item.id,
               url: item.video_url,
+              thumbnailUrl: item.thumbnail_url,
+              userId: item.user_id,
               user: item.profiles?.username || 'anonymous',
+              fullName: item.profiles?.full_name,
               description: item.caption,
-              likes: item.likes?.[0]?.count?.toString() || '0',
-              comments: item.comments?.[0]?.count?.toString() || '0',
-              shares: '0', // Placeholder for now
+              likes: item.likes || [],
+              comments: item.comments || [],
+              shares: '0',
             }} 
           />
         )}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const AuthScreen = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +13,11 @@ const AuthScreen = () => {
   const navigation = useNavigation<any>();
 
   async function handleAuth() {
+    if (!email || !password || (isSignUp && !username)) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (isSignUp) {
@@ -33,6 +39,9 @@ const AuthScreen = () => {
           password,
         });
         if (error) throw error;
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
       }
     } catch (error: any) {
       Alert.alert('Erreur', error.message);
@@ -42,70 +51,86 @@ const AuthScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-white p-8 justify-center">
-      {navigation.canGoBack() ? (
-        <TouchableOpacity className="absolute left-8 top-16 z-10" onPress={() => navigation.goBack()}>
-          <Text className="text-sm font-bold text-gray-500">Fermer</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      <Text className="text-4xl font-bold text-center mb-8">TikTok Clone</Text>
-      
-      <Text className="text-2xl font-semibold mb-6">
-        {isSignUp ? 'Créer un compte' : 'Connexion'}
-      </Text>
-
-      {isSignUp && (
-        <TextInput
-          className="border border-gray-300 rounded-lg p-4 mb-4"
-          placeholder="Nom d'utilisateur"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-        />
-      )}
-
-      <TextInput
-        className="border border-gray-300 rounded-lg p-4 mb-4"
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <TextInput
-        className="border border-gray-300 rounded-lg p-4 mb-6"
-        placeholder="Mot de passe"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity
-        className="bg-black rounded-lg p-4 items-center"
-        onPress={handleAuth}
-        disabled={loading}
+    <SafeAreaView className="flex-1 bg-black">
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
       >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text className="text-white font-bold text-lg">
-            {isSignUp ? "S'inscrire" : 'Se connecter'}
+        <ScrollView contentContainerStyle={styles.scrollContent} className="justify-center p-8">
+          {navigation.canGoBack() ? (
+            <TouchableOpacity className="absolute left-8 top-4 z-10" onPress={() => navigation.goBack()}>
+              <Text className="text-sm font-bold text-zinc-400">Fermer</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <Text className="text-4xl font-bold text-center mb-10 text-white">TikTok Clone</Text>
+          
+          <Text className="text-2xl font-semibold mb-6 text-white">
+            {isSignUp ? 'Créer un compte' : 'Connexion'}
           </Text>
-        )}
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        className="mt-4 items-center"
-        onPress={() => setIsSignUp(!isSignUp)}
-      >
-        <Text className="text-blue-500">
-          {isSignUp ? 'Déjà un compte ? Connectez-vous' : "Pas de compte ? Inscrivez-vous"}
-        </Text>
-      </TouchableOpacity>
-    </View>
+          {isSignUp && (
+            <TextInput
+              className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4 text-white"
+              placeholder="Nom d'utilisateur"
+              placeholderTextColor="#71717a"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+          )}
+
+          <TextInput
+            className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4 text-white"
+            placeholder="Email"
+            placeholderTextColor="#71717a"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <TextInput
+            className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-8 text-white"
+            placeholder="Mot de passe"
+            placeholderTextColor="#71717a"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+
+          <TouchableOpacity
+            className="bg-[#FE2C55] rounded-2xl p-5 items-center"
+            onPress={handleAuth}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-bold text-lg">
+                {isSignUp ? "S'inscrire" : 'Se connecter'}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="mt-6 items-center"
+            onPress={() => setIsSignUp(!isSignUp)}
+          >
+            <Text className="text-[#25F4EE] font-medium">
+              {isSignUp ? 'Déjà un compte ? Connectez-vous' : "Pas de compte ? Inscrivez-vous"}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+  },
+});
 
 export default AuthScreen;

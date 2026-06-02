@@ -1,64 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 export interface Video {
   id: string;
   video_url: string;
+  thumbnail_url: string | null;
   caption: string;
   user_id: string;
   profiles: {
+    id?: string;
     username: string;
+    full_name?: string | null;
     avatar_url: string;
+    bio?: string | null;
   };
-  likes: { count: number }[];
-  comments: { count: number }[];
+  likes: { user_id: string }[];
+  comments: { id: string }[];
 }
 
 const PUBLIC_FEED_USERNAMES = ['tiktokclone', 'tiktok_fr', 'tiktok_africa', 'demo'];
+export type FeedMode = 'for_you' | 'following';
 
-export const useVideos = (isGuest = false) => {
+export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUserId?: string) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+      let targetUserIds: string[] | null = null;
+      
+      if (mode === 'following') {
+        if (!sessionUserId) {
+          setVideos([]);
+          setLoading(false);
+          return;
+        }
+
+        const { data: followRows, error: followsError } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', sessionUserId);
+
+        if (followsError) throw followsError;
+
+        targetUserIds = (followRows || []).map(row => row.following_id);
+        if (targetUserIds.length === 0) {
+          setVideos([]);
+          setLoading(false);
+          return;
+        }
+      }
+
+      let query = supabase
         .from('videos')
         .select(`
           *,
-          profiles (username, avatar_url),
-          likes (count),
-          comments (count)
+          profiles (id, username, full_name, avatar_url, bio),
+          likes (user_id),
+          comments (id)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-
-      const allVideos = data || [];
-      if (!isGuest) {
-        setVideos(allVideos);
-        return;
+      if (targetUserIds) {
+        query = query.in('user_id', targetUserIds);
       }
 
-      const guestVideos = allVideos.filter(video => {
-        const username = video.profiles?.username?.toLowerCase() || '';
-        return PUBLIC_FEED_USERNAMES.includes(username);
-      });
+      const { data, error: fetchError } = await query;
 
-      // Fallback to a short curated list when the configured public creators
-      // are not present yet in the database.
-      setVideos(guestVideos.length > 0 ? guestVideos : allVideos.slice(0, 8));
-    } catch (error) {
-      console.error('Error fetching videos:', error);
+      if (fetchError) throw fetchError;
+
+      const normalizedVideos = (data || []).map(item => ({
+        ...item,
+        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+      })) as Video[];
+
+      if (!isGuest) {
+        setVideos(normalizedVideos);
+      } else {
+        const guestVideos = normalizedVideos.filter(video => {
+          const username = video.profiles?.username?.toLowerCase() || '';
+          return PUBLIC_FEED_USERNAMES.includes(username);
+        });
+        setVideos(guestVideos.length > 0 ? guestVideos : normalizedVideos.slice(0, 10));
+      }
+    } catch (err: any) {
+      console.error('Error fetching videos:', err);
+      setError("Impossible de charger les vidéos.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [isGuest, mode, sessionUserId]);
 
   useEffect(() => {
     fetchVideos();
-  }, [isGuest]);
+  }, [fetchVideos]);
 
-  return { videos, loading, refresh: fetchVideos };
+  return { videos, loading, error, refresh: fetchVideos };
 };

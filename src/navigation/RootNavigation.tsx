@@ -4,29 +4,34 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import FeedScreen from '../screens/FeedScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AuthScreen from '../screens/AuthScreen';
+import CommentsScreen from '../screens/CommentsScreen';
+import PublicProfileScreen from '../screens/PublicProfileScreen';
+import DiscoverScreen from '../screens/DiscoverScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import InboxScreen from '../screens/InboxScreen';
+import ConversationsScreen from '../screens/ConversationsScreen';
+import ChatScreen from '../screens/ChatScreen';
+import UploadScreen from '../screens/UploadScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
-import { Session } from '@supabase/supabase-js';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { useAuth } from '../hooks/useAuth';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-import UploadScreen from '../screens/UploadScreen';
-
-const LockedPlaceholder = ({ title }: { title: string }) => (
-  <View className="flex-1 items-center justify-center bg-black px-6">
-    <Text className="text-2xl font-bold text-white">{title}</Text>
-    <Text className="mt-3 text-center text-zinc-400">
-      Cette section est reservee aux utilisateurs connectes.
-    </Text>
+const HomeIcon = ({ color, size }: { color: string; size: number }) => <Home color={color} size={size} />;
+const DiscoverIcon = ({ color, size }: { color: string; size: number }) => <Search color={color} size={size} />;
+const PlusIcon = () => (
+  <View className="bg-white rounded-lg px-3 py-1">
+    <PlusSquare color="#000" size={24} />
   </View>
 );
+const InboxIcon = ({ color, size }: { color: string; size: number }) => <MessageCircle color={color} size={size} />;
+const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User color={color} size={size} />;
 
-interface MainTabsProps {
-  session: Session | null;
-}
+const MainTabs: React.FC = () => {
+  const { session } = useAuth();
 
-const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
   const requireAuth = ({ navigation, preventDefault }: any) => {
     if (session?.user) {
       return;
@@ -40,48 +45,51 @@ const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#000', borderTopWidth: 0 },
+        tabBarStyle: { backgroundColor: '#000', borderTopWidth: 0, height: 60, paddingBottom: 8 },
         tabBarActiveTintColor: '#fff',
         tabBarInactiveTintColor: '#888',
       }}
     >
       <Tab.Screen
         name="Home"
-        children={() => <FeedScreen isGuest={!session?.user} />}
+        component={FeedScreen}
         options={{
-          tabBarIcon: ({ color }) => <Home color={color} size={24} />,
+          tabBarIcon: HomeIcon,
+          tabBarLabel: 'Accueil'
         }}
       />
       <Tab.Screen
         name="Discover"
-        children={() => <LockedPlaceholder title="Decouverte" />}
+        component={DiscoverScreen}
         options={{
-          tabBarIcon: ({ color }) => <Search color={color} size={24} />,
+          tabBarIcon: DiscoverIcon,
+          tabBarLabel: 'Amis'
         }}
-        listeners={{ tabPress: requireAuth }}
       />
       <Tab.Screen
         name="Upload"
-        children={() => <UploadScreen session={session} />}
+        component={UploadScreen}
         options={{
-          tabBarIcon: ({ color }) => <PlusSquare color={color} size={32} />,
+          tabBarIcon: PlusIcon,
           tabBarLabel: () => null,
         }}
         listeners={{ tabPress: requireAuth }}
       />
       <Tab.Screen
         name="Inbox"
-        children={() => <LockedPlaceholder title="Messages" />}
+        component={InboxScreen}
         options={{
-          tabBarIcon: ({ color }) => <MessageCircle color={color} size={24} />,
+          tabBarIcon: InboxIcon,
+          tabBarLabel: 'Boîte'
         }}
         listeners={{ tabPress: requireAuth }}
       />
       <Tab.Screen
         name="Profile"
-        children={() => <ProfileScreen session={session} />}
+        component={ProfileScreen}
         options={{
-          tabBarIcon: ({ color }) => <User color={color} size={24} />,
+          tabBarIcon: ProfileIcon,
+          tabBarLabel: 'Profil'
         }}
         listeners={{ tabPress: requireAuth }}
       />
@@ -89,19 +97,28 @@ const MainTabs: React.FC<MainTabsProps> = ({ session }) => {
   );
 };
 
-interface RootNavigationProps {
-  session: Session | null;
-}
-
-const RootNavigation: React.FC<RootNavigationProps> = ({ session }) => {
+const RootNavigation: React.FC = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Main">{() => <MainTabs session={session} />}</Stack.Screen>
+      <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen
         name="Auth"
         component={AuthScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
+      <Stack.Screen
+        name="Comments"
+        component={CommentsScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen name="Conversations" component={ConversationsScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 };
