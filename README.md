@@ -1,124 +1,88 @@
-# 📱 TikTok Clone - Architecture & Spécifications Techniques
+# 📱 TikTok Clone - Documentation Technique Complète
 
-Bienvenue dans le dépôt de **TikTok Clone**, une plateforme de partage de vidéos courtes haute performance. Ce document détaille l'écosystème complet des outils et technologies utilisés pour construire cette application.
-
----
-
-## 🎙️ Pitch de Présentation
-
-"Cette application est un clone fonctionnel de TikTok, développée avec une approche **Mobile-First** et **Cloud-Native**. L'objectif était de recréer l'expérience addictive du défilement infini, de l'interaction sociale en temps réel et de la gestion de contenu multimédia, le tout soutenu par une infrastructure backend robuste et scalable."
+Bienvenue dans le dépôt de **TikTok Clone**, une application mobile haute performance conçue pour reproduire l'expérience utilisateur de TikTok. Ce projet a été développé avec une attention particulière à la fluidité, à la scalabilité et à l'architecture moderne.
 
 ---
 
-## 🛠️ Stack Technologique exhaustive (L'Écosystème)
+## 🚀 Pitch du Projet
 
-### 🏗️ Framework & Langage
-*   **[React Native](https://reactnative.dev/) (v0.85) :** Framework principal pour le développement cross-platform.
-*   **[TypeScript](https://www.typescriptlang.org/) (v5.8) :** Typage statique strict pour une maintenance simplifiée et une réduction drastique des bugs de production.
-
-### 🎨 Design & Interface (UI/UX)
-*   **[NativeWind](https://www.nativewind.dev/) (v4.2) :** Implémentation de **Tailwind CSS** pour React Native, permettant un styling rapide et responsive via des classes utilitaires.
-*   **[Lucide React Native](https://lucide.dev/) :** Bibliothèque d'icônes vectorielles pour une interface épurée et professionnelle.
-*   **[React Native Safe Area Context](https://github.com/th3rdwave/react-native-safe-area-context) :** Gestion précise des encoches (notches) et des barres système sur iOS et Android.
-
-### 🧭 Navigation & Expérience
-*   **[React Navigation v7](https://reactnavigation.org/) :**
-    *   `@react-navigation/bottom-tabs` : Barre de navigation principale.
-    *   `@react-navigation/native-stack` : Gestion des transitions entre écrans et modales.
-*   **[React Native Screens](https://github.com/software-mansion/react-native-screens) :** Optimisation native des écrans pour réduire la consommation mémoire.
-
-### ☁️ Backend & Infrastructure (Supabase)
-*   **[@supabase/supabase-js](https://supabase.com/docs/reference/javascript/introduction) :** Client universel pour interagir avec les services cloud.
-*   **PostgreSQL :** Base de données relationnelle avec **RLS (Row Level Security)** pour sécuriser les données au niveau de la ligne.
-*   **Supabase Auth :** Gestion complète du cycle de vie des utilisateurs (Sign-up, Login, Sessions).
-*   **Supabase Realtime :** Canaux de diffusion pour le chat instantané et les notifications.
-
-### 🎥 Multimédia & Animations
-*   **[React Native Video](https://github.com/react-native-video/react-native-video) (v6.19) :** Moteur de lecture vidéo haute performance avec support du buffering et du looping.
-*   **[React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) (v4.3) :** Moteur d'animations fluide tournant sur le thread natif (système de Like, transitions).
-*   **[React Native Image Picker](https://github.com/react-native-image-picker/react-native-image-picker) :** Interface pour la sélection sécurisée de vidéos dans la galerie du téléphone.
-
-### 🛠️ Outils de Développement & Qualité
-*   **ESLint :** Configuration rigoureuse pour garantir un code propre et sans variables inutilisées.
-*   **Prettier :** Formatage automatique pour une cohérence stylistique absolue.
-*   **[React Native URL Polyfill](https://github.com/charpeni/react-native-url-polyfill) :** Support des URL standards requis par le SDK Supabase sur mobile.
-*   **Babel :** Transpilation du code JavaScript moderne pour une compatibilité maximale.
+"Jimmy-Network présente un clone fonctionnel de TikTok. L'application permet aux utilisateurs de naviguer dans un flux vidéo infini, d'interagir avec le contenu (Likes, Commentaires) et de gérer leur identité sociale. L'objectif technique était de construire une application mobile robuste en utilisant les dernières technologies de développement cross-platform et de backend-as-a-service."
 
 ---
 
-## 📂 Gestion & Stockage des Vidéos (Le Cœur du Contenu)
+## 🛠️ Stack Technologique (Détails)
 
-C'est un point critique de l'application. La gestion des médias est scindée en deux parties :
+### ⚛️ Frontend : React Native & TypeScript
+*   **React Native (v0.85)** : Choisi pour sa performance quasi-native et sa flexibilité.
+*   **TypeScript (v5.8)** : Utilisé pour garantir un code typé, réduire les erreurs d'exécution et faciliter la collaboration.
 
-### 1. Stockage Physique (Hosting)
-*   **Outil :** **Supabase Storage**.
-*   **Lieu :** Les fichiers binaires (.mp4, .mov) sont stockés dans un **Bucket** dédié nommé `videos`.
-*   **Infrastructure :** Ce bucket est configuré sur une infrastructure de stockage d'objets (S3-compatible) hautement disponible, garantissant que les vidéos se chargent rapidement partout dans le monde.
+### 🎨 Design & Styling : NativeWind (Tailwind CSS)
+*   **NativeWind** : Permet d'utiliser les classes utilitaires de Tailwind CSS pour un design rapide, cohérent et hautement personnalisable.
+*   **Lucide React Native** : Bibliothèque d'icônes vectorielles légères et élégantes.
 
-### 2. Gestion de la Donnée (Metadata)
-*   **Outil :** **PostgreSQL** (Table `videos`).
-*   **Lieu :** La base de données ne stocke pas la vidéo elle-même (trop lourd), mais l'**URL publique** pointant vers le stockage.
-*   **Logique :** Chaque entrée dans la table `videos` lie l'ID de l'utilisateur (`user_id`), la légende (`caption`) et l'URL du fichier. Cela permet une recherche et un affichage ultra-rapides sans manipuler de fichiers lourds au niveau de la logique métier.
+### ⚡ Backend & Infrastructure : Supabase
+*   **Authentification** : Gestion sécurisée des comptes utilisateurs via Supabase Auth.
+*   **Base de Données (PostgreSQL)** : Stockage structuré pour les profils, vidéos, likes et commentaires.
+*   **Stockage (Storage)** : Hébergement des fichiers vidéo volumineux sur des serveurs optimisés.
+*   **Realtime** : Pour les futures fonctionnalités de chat et notifications en direct.
 
----
-
-## 🚀 Fonctions Indispensables & Implémentation
-
-### 1. Le "Infinite Scroll" Feed
-*   **Implémentation :** Utilisation de `pagingEnabled` sur un `FlatList` couplé à `getItemLayout` pour des transitions instantanées entre les vidéos sans saccades.
-*   **Mise en cache :** Les métadonnées sont chargées par lots via le hook `useVideos`.
-
-### 2. Le Système d'Interaction Sociale
-*   **Likes Dynamiques :** Gestion optimisée via `upsert` pour éviter les erreurs lors de clics rapides.
-*   **Commentaires :** Système hiérarchique lié à l'ID de la vidéo avec affichage instantané.
-*   **Abonnements :** Table de jointure `follows` permettant de filtrer dynamiquement le flux "Abonnements".
-
-### 3. Messagerie & Real-time
-*   **Architecture :** Utilisation d'une table `conversations` et `conversation_participants` pour gérer les chats privés.
-*   **Flux :** Abonnement aux changements PostgreSQL via WebSockets pour une réception de messages à la milliseconde près.
+### 🎬 Multimédia : React Native Video
+*   **Video Engine** : Lecture fluide, mise en cache et buffering optimisé pour le scrolling vertical.
+*   **Reanimated (v4.3)** : Moteur d'animation fluide pour les interactions UI (comme le cœur de like).
 
 ---
 
-## 💎 Qualité de Livraison
+## 📂 Architecture des Pages (Écrans)
 
-*   **Zéro Erreur Lint :** Le projet est certifié sans warnings ESLint.
-*   **Compilation TypeScript :** 100% Validée via `tsc`.
-*   **Performance :** Optimisé pour fonctionner à 60 FPS même sur des appareils d'entrée de gamme.
+L'application est découpée en plusieurs modules logiques :
+
+### 1. 🏠 FeedScreen (Accueil)
+*   **Fonction** : Flux vidéo principal.
+*   **Technique** : Utilise une `FlatList` avec `pagingEnabled` pour un effet de "snap" (aimantation) entre les vidéos. Les vidéos se chargent dynamiquement via le hook `useVideos`.
+
+### 2. 🔍 DiscoverScreen (Découvrir)
+*   **Fonction** : Permet de trouver des amis et du contenu tendance.
+*   **État actuel** : Structure de recherche prête pour l'intégration de l'exploration globale.
+
+### 3. ➕ UploadScreen (Ajouter)
+*   **Fonction** : Permet aux utilisateurs d'ajouter de nouvelles vidéos.
+*   **Technique** : Intégration de `react-native-image-picker` pour sélectionner des médias depuis la galerie du téléphone.
+
+### 4. 📥 InboxScreen (Boîte de réception)
+*   **Fonction** : Centre de notifications et de messagerie.
+*   **Technique** : Protection par authentification (redirection vers AuthScreen si non connecté).
+
+### 5. 👤 ProfileScreen (Profil)
+*   **Fonction** : Espace personnel de l'utilisateur.
+*   **Technique** : Affiche les vidéos postées par l'utilisateur et permet d'accéder aux paramètres (EditProfile).
+
+### 6. 🔐 AuthScreen (Authentification)
+*   **Fonction** : Écran de connexion et d'inscription.
+*   **Technique** : Formulaires optimisés avec gestion du clavier (`KeyboardAvoidingView`) et liaison directe avec Supabase Auth.
 
 ---
 
-## 🛠️ Lancement rapide
+## 💎 Points Forts du Code
+
+*   **Surgical Fixes** : Le code a été optimisé pour résoudre les problèmes d'écran blanc et de crash de navigation.
+*   **Bundle Autonome** : L'APK générée inclut tout le JavaScript, permettant une utilisation sans serveur de développement.
+*   **Gestion des Erreurs** : Intégration de timeouts et de messages d'erreur conviviaux pour la connexion Supabase.
+
+---
+
+## 🚀 Lancement Rapide pour les Camarades
 
 ```bash
-npm install        # Installation des dépendances
-npm run android    # Lancer sur Android
-npm run ios        # Lancer sur iOS (requiert Mac)
+# 1. Cloner le projet
+git clone https://github.com/Jimmy-Network1/TiktokClone.git
+
+# 2. Installer les dépendances
+npm install
+
+# 3. Lancer l'application
+npm run android   # Pour Android
+npm run ios       # Pour iOS (Mac requis)
 ```
 
 ---
-
-## 👥 Instructions pour les camarades (Clonage & Setup)
-
-Pour tester le projet sur votre machine, suivez ces étapes :
-
-1.  **Cloner le dépôt** :
-    ```bash
-    git clone <url-du-repo>
-    cd tiktoo
-    ```
-
-2.  **Installer les dépendances** :
-    ```bash
-    npm install
-    ```
-
-3.  **Configuration iOS (Mac uniquement)** :
-    ```bash
-    cd ios && pod install && cd ..
-    ```
-
-4.  **Lancer l'application** :
-    *   **Android** : `npm run android`
-    *   **iOS** : `npm run ios`
-
-*Note : Les clés Supabase sont déjà configurées dans `src/lib/config.ts`, l'application sera donc fonctionnelle immédiatement après l'installation.*
+*Projet finalisé et stabilisé - Version complète par Jimmy-network*
