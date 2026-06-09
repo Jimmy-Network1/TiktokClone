@@ -96,4 +96,29 @@ npm run ios        # Lancer sur iOS (requiert Mac)
 ```
 
 ---
-*Projet développé avec rigueur technique pour une expérience utilisateur sans compromis.*
+
+## 👥 Instructions pour les camarades (Clonage & Setup)
+
+Pour tester le projet sur votre machine, suivez ces étapes :
+
+1.  **Cloner le dépôt** :
+    ```bash
+    git clone <url-du-repo>
+    cd tiktoo
+    ```
+
+2.  **Installer les dépendances** :
+    ```bash
+    npm install
+    ```
+
+3.  **Configuration iOS (Mac uniquement)** :
+    ```bash
+    cd ios && pod install && cd ..
+    ```
+
+4.  **Lancer l'application** :
+    *   **Android** : `npm run android`
+    *   **iOS** : `npm run ios`
+
+*Note : Les clés Supabase sont déjà configurées dans `src/lib/config.ts`, l'application sera donc fonctionnelle immédiatement après l'installation.*
