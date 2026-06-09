@@ -14,6 +14,7 @@ import ChatScreen from '../screens/ChatScreen';
 import UploadScreen from '../screens/UploadScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 
 const Tab = createBottomTabNavigator();
@@ -31,8 +32,9 @@ const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User 
 
 const MainTabs: React.FC = () => {
   const { session } = useAuth();
+  const navigation = useNavigation<any>();
 
-  const requireAuth = ({ navigation, preventDefault }: any) => {
+  const requireAuth = ({ preventDefault }: any) => {
     if (session?.user) {
       return;
     }
