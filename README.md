@@ -6,7 +6,7 @@ Bienvenue dans le dépôt de **TikTok Clone**, une application mobile haute perf
 
 ## 🚀 Pitch du Projet
 
-"Jimmy-Network présente un clone fonctionnel de TikTok. L'application permet aux utilisateurs de naviguer dans un flux vidéo infini, d'interagir avec le contenu (Likes, Commentaires) et de gérer leur identité sociale. L'objectif technique était de construire une application mobile robuste en utilisant les dernières technologies de développement cross-platform et de backend-as-a-service."
+"Miguel & El Sonk présentent un clone fonctionnel de TikTok. L'application permet aux utilisateurs de naviguer dans un flux vidéo infini, d'interagir avec le contenu (Likes, Commentaires) et de gérer leur identité sociale. L'objectif technique était de construire une application mobile robuste en utilisant les dernières technologies de développement cross-platform et de backend-as-a-service."
 
 ---
 
@@ -85,4 +85,4 @@ npm run ios       # Pour iOS (Mac requis)
 ```
 
 ---
-*Projet finalisé et stabilisé - Version complète par Jimmy-network*
+*Projet finalisé et stabilisé - Version complète par Miguel & El Sonk*
