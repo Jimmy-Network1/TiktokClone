@@ -14,13 +14,8 @@ import ChatScreen from '../screens/ChatScreen';
 import UploadScreen from '../screens/UploadScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
-<<<<<<< HEAD
-import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../hooks/useAuth';
-=======
 import { useAuth } from '../hooks/useAuth';
 import { useNavigation } from '@react-navigation/native';
->>>>>>> origin
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -35,18 +30,10 @@ const PlusIcon = () => (
 const InboxIcon = ({ color, size }: { color: string; size: number }) => <MessageCircle color={color} size={size} />;
 const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User color={color} size={size} />;
 
-<<<<<<< HEAD
-const MainTabs: React.FC = () => {
-  const { session } = useAuth();
-  const navigation = useNavigation<any>();
-
-  const requireAuth = ({ preventDefault }: any) => {
-=======
 const MainTabs: React.FC<any> = ({ navigation }) => {
   const { session } = useAuth();
 
   const requireAuth = (e: any) => {
->>>>>>> origin
     if (session?.user) {
       return;
     }
