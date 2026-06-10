@@ -85,4 +85,4 @@ npm run ios       # Pour iOS (Mac requis)
 ```
 
 ---
-*Projet finalisé et stabilisé - Version complète par Miguel & El Sonk*
+*Projet finalisé et stabilisé - Version complète*
