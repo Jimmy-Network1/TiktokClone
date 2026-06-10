@@ -12,7 +12,14 @@ function App(): React.JSX.Element {
   const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+<<<<<<< HEAD
   const initAuth = useCallback(async () => {
+=======
+  console.log('App starting: authReady =', authReady);
+
+  const initAuth = useCallback(async () => {
+    console.log('Initializing Auth...');
+>>>>>>> origin
     setError(null);
     setAuthReady(false);
 
@@ -23,6 +30,7 @@ function App(): React.JSX.Element {
     try {
       const authPromise = supabase.auth.getSession();
       const result = await Promise.race([authPromise, timeoutPromise]) as any;
+<<<<<<< HEAD
       setSession(result?.data?.session ?? null);
       setAuthReady(true);
     } catch (err: any) {
@@ -33,6 +41,17 @@ function App(): React.JSX.Element {
         setError("Erreur de connexion. Vérifiez votre réseau.");
       } else {
         setAuthReady(true); // Proceed as guest if it's just a session error
+=======
+      console.log('Auth session received');
+      setSession(result?.data?.session ?? null);
+      setAuthReady(true);
+    } catch (err: any) {
+      console.error('Supabase auth initialization error:', err.message);
+      if (err.message.includes('Timeout') || err.message.includes('Network')) {
+        setError("Erreur de connexion. Vérifiez votre réseau.");
+      } else {
+        setAuthReady(true);
+>>>>>>> origin
       }
     }
   }, []);
@@ -51,7 +70,11 @@ function App(): React.JSX.Element {
 
   if (error) {
     return (
+<<<<<<< HEAD
       <View className="flex-1 bg-black items-center justify-center p-5">
+=======
+      <View style={{ flex: 1, backgroundColor: 'black' }} className="flex-1 bg-black items-center justify-center p-5">
+>>>>>>> origin
         <Text className="text-white text-lg font-bold text-center">{error}</Text>
         <TouchableOpacity 
           onPress={initAuth}
@@ -65,7 +88,11 @@ function App(): React.JSX.Element {
 
   if (!authReady) {
     return (
+<<<<<<< HEAD
       <View className="flex-1 bg-black items-center justify-center">
+=======
+      <View style={{ flex: 1, backgroundColor: 'black' }} className="flex-1 bg-black items-center justify-center">
+>>>>>>> origin
         <ActivityIndicator size="large" color="#FE2C55" />
         <Text className="text-white mt-4 text-xs opacity-50">Initialisation de TikTok...</Text>
       </View>
