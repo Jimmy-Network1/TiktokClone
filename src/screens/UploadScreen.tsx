@@ -29,10 +29,22 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
   const pickVideo = async () => {
     const result = await launchImageLibrary({
       mediaType: 'video',
-      videoQuality: 'high',
+      videoQuality: 'medium', // Medium quality for better compression ratio
+      selectionLimit: 1,
     });
 
+    if (result.didCancel) return;
+    if (result.errorCode) {
+      Alert.alert('Erreur', result.errorMessage || 'Erreur lors de la sélection');
+      return;
+    }
+
     if (result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 50 * 1024 * 1024) {
+        Alert.alert('Fichier trop volumineux', 'La limite est de 50 Mo.');
+        return;
+      }
       setVideo(result);
     }
   };
@@ -44,52 +56,51 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
     }
 
     setUploading(true);
+    
     try {
       const asset = video.assets[0];
-      const fileName = `${Date.now()}-${asset.fileName || 'video.mp4'}`;
-      const filePath = `public/${fileName}`;
+      const extension = asset.uri.split('.').pop();
+      const fileName = `${session?.user.id}-${Date.now()}.${extension}`;
+      const filePath = `${session?.user.id}/${fileName}`;
 
-      // 1. Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Utilisateur non connecté');
-
-      // 2. Prepare file data
-      const formData = new FormData();
-      formData.append('file', {
-        uri: asset.uri,
-        name: fileName,
-        type: asset.type || 'video/mp4',
-      } as any);
-
-      // 3. Upload to Storage
+      // 1. Upload to Storage with progress
       const { error: uploadError } = await supabase.storage
         .from('videos')
-        .upload(filePath, formData);
+        .upload(filePath, {
+          uri: asset.uri,
+          name: fileName,
+          type: asset.type || 'video/mp4',
+        } as any, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
-      // 4. Get Public URL
+      // 2. Get Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('videos')
         .getPublicUrl(filePath);
 
-      // 5. Save to Database
+      // 3. Save to Database
       const { error: dbError } = await supabase
         .from('videos')
         .insert({
-          user_id: user.id,
+          user_id: session?.user.id,
           video_url: publicUrl,
-          caption: caption,
+          caption: caption.trim(),
+          thumbnail_url: null, // Placeholder for future thumbnail generation logic
         });
 
       if (dbError) throw dbError;
 
-      Alert.alert('Succès', 'Vidéo publiée !');
-      navigation.navigate('Home');
+      Alert.alert('Succès', 'Votre vidéo est en ligne !');
       setVideo(null);
       setCaption('');
+      navigation.navigate('Home');
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Le téléchargement a échoué.');
+      console.error('Upload error:', err);
+      Alert.alert('Erreur', err.message || 'Échec du téléchargement. Vérifiez votre connexion.');
     } finally {
       setUploading(false);
     }

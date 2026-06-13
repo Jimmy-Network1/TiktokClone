@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { Camera } from 'lucide-react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const EditProfileScreen = () => {
   const navigation = useNavigation<any>();
@@ -12,14 +13,13 @@ const EditProfileScreen = () => {
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         setLoading(true);
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (!session?.user) {
           navigation.navigate('Auth');
@@ -29,7 +29,7 @@ const EditProfileScreen = () => {
         setProfileId(session.user.id);
         const { data, error } = await supabase
           .from('profiles')
-          .select('username, full_name, bio')
+          .select('username, full_name, bio, avatar_url')
           .eq('id', session.user.id)
           .single();
 
@@ -38,6 +38,7 @@ const EditProfileScreen = () => {
         setUsername(data.username || '');
         setFullName(data.full_name || '');
         setBio(data.bio || '');
+        setAvatarUrl(data.avatar_url || '');
       } catch (err: any) {
         console.error('Edit profile load error:', err);
       } finally {
@@ -47,6 +48,43 @@ const EditProfileScreen = () => {
 
     loadProfile();
   }, [navigation]);
+
+  const handlePickAvatar = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.5,
+    });
+
+    if (result.assets && result.assets[0].uri) {
+      const asset = result.assets[0];
+      const fileName = `avatar-${profileId}-${Date.now()}.jpg`;
+      const filePath = `avatars/${fileName}`;
+
+      setSaving(true);
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, {
+            uri: asset.uri,
+            name: fileName,
+            type: 'image/jpeg',
+          } as any);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        setAvatarUrl(publicUrl);
+        Alert.alert('Succès', 'Photo mise à jour localement. Cliquez sur Enregistrer pour confirmer.');
+      } catch {
+        Alert.alert('Erreur', "Impossible d'uploader l'image.");
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
 
   const handleSave = async () => {
     if (!profileId) return;
@@ -59,6 +97,7 @@ const EditProfileScreen = () => {
           username: username.trim() || null,
           full_name: fullName.trim() || null,
           bio: bio.trim() || null,
+          avatar_url: avatarUrl,
           updated_at: new Date().toISOString(),
         })
         .eq('id', profileId);
@@ -100,16 +139,20 @@ const EditProfileScreen = () => {
       <ScrollView className="flex-1 px-5">
         {/* Avatar Section */}
         <View className="items-center py-8">
-           <View className="relative">
-              <View className="h-24 w-24 rounded-full bg-zinc-900 items-center justify-center border border-white/10">
-                 <Text className="text-white text-3xl font-bold">
-                    {(username || 'U').charAt(0).toUpperCase()}
-                 </Text>
+           <TouchableOpacity onPress={handlePickAvatar} className="relative">
+              <View className="h-24 w-24 rounded-full bg-zinc-900 items-center justify-center border border-white/10 overflow-hidden">
+                 {avatarUrl ? (
+                   <Image source={{ uri: avatarUrl }} className="h-full w-full" />
+                 ) : (
+                   <Text className="text-white text-3xl font-bold">
+                      {(username || 'U').charAt(0).toUpperCase()}
+                   </Text>
+                 )}
               </View>
               <View className="absolute bottom-0 right-0 bg-zinc-800 p-2 rounded-full border-2 border-black">
                  <Camera color="white" size={16} />
               </View>
-           </View>
+           </TouchableOpacity>
            <Text className="mt-4 text-zinc-400 text-xs">Modifier la photo</Text>
         </View>
 
@@ -150,12 +193,6 @@ const EditProfileScreen = () => {
                 onChangeText={setBio}
               />
            </View>
-        </View>
-
-        <View className="py-10 items-center">
-           <Text className="text-zinc-600 text-[10px] text-center uppercase tracking-widest">
-              ID: {profileId?.substring(0, 18).toUpperCase()}
-           </Text>
         </View>
       </ScrollView>
     </View>
