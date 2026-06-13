@@ -27,23 +27,14 @@ function App(): React.JSX.Element {
     try {
       const authPromise = supabase.auth.getSession();
       const result = await Promise.race([authPromise, timeoutPromise]) as any;
-<<<<<<< HEAD
+      clearTimeout(timeoutId);
       console.log('Auth session received');
       setSession(result?.data?.session ?? null);
       setAuthReady(true);
     } catch (err: any) {
-      console.error('Supabase auth initialization error:', err.message);
-=======
       clearTimeout(timeoutId);
-      setSession(result?.data?.session ?? null);
-      setAuthReady(true);
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      console.error('Supabase auth initialization error:', err);
-      // We still set authReady to true but maybe show a guest mode warning later
-      // or if it's a critical network error, we show the retry UI
->>>>>>> fe75e6f (gestion des flux de video)
-      if (err.message.includes('Timeout') || err.message.includes('Network')) {
+      console.error('Supabase auth initialization error:', err.message || err);
+      if (err.message?.includes('Timeout') || err.message?.includes('Network')) {
         setError("Erreur de connexion. Vérifiez votre réseau.");
       } else {
         setAuthReady(true);
