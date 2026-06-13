@@ -6,8 +6,6 @@ import Animated, {
   withRepeat, 
   withTiming, 
   withSequence,
-  interpolate,
-  Extrapolate
 } from 'react-native-reanimated';
 
 interface LogoProps {
@@ -50,8 +48,8 @@ const Logo: React.FC<LogoProps> = ({ size = 'medium' }) => {
   }));
 
   return (
-    <View className="items-center justify-center">
-      {/* Background Glow */}
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      {/* Background Glow Simulation */}
       <Animated.View 
         style={[
           glowStyle,
@@ -61,10 +59,9 @@ const Logo: React.FC<LogoProps> = ({ size = 'medium' }) => {
             height: fontSize * 1.5,
             borderRadius: fontSize,
             backgroundColor: '#2AF5FF',
-            opacity: 0.2,
-            filter: 'blur(20px)', // Note: standard CSS blur doesn't work on RN without specialized libs, but we use styling
           }
         ]} 
+        className="opacity-20"
       />
 
       <Animated.View style={[animatedStyle, { flexDirection: 'row', alignItems: 'center' }]}>
@@ -94,17 +91,11 @@ const styles = StyleSheet.create({
   text: {
     fontWeight: '900',
     fontStyle: 'italic',
-    letterSpacing: -2,
   },
   box: {
-    backgroundColor: '#2AF5FF', // Electric Cyan
+    backgroundColor: '#2AF5FF',
     marginLeft: -2,
     transform: [{ rotate: '-5deg' }],
-    shadowColor: "#2AF5FF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 10,
   }
 });
 
