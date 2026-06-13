@@ -10,6 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import VideoItem from '../components/VideoItem';
+import Stories from '../components/Stories';
+import Logo from '../components/Logo';
 import { FeedMode, useVideos } from '../hooks/useVideos';
 import { useAuth } from '../hooks/useAuth';
 
@@ -71,31 +73,33 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
 
   return (
     <View className="flex-1 bg-black">
-      {/* Header Tabs */}
-      {!isGuest && (
-        <View className="absolute left-0 right-0 top-0 z-10 flex-row justify-center items-center pt-14 pb-4 bg-transparent">
-          <TouchableOpacity onPress={() => setMode('following')} className="px-4">
-            <Text className={`text-base font-bold ${mode === 'following' ? 'text-white' : 'text-zinc-500'}`}>
-              Abonnements
-            </Text>
-            {mode === 'following' && <View className="h-0.5 w-6 bg-white self-center mt-1" />}
-          </TouchableOpacity>
-          <View className="w-0.5 h-3 bg-white/20" />
-          <TouchableOpacity onPress={() => setMode('for_you')} className="px-4">
-            <Text className={`text-base font-bold ${mode === 'for_you' ? 'text-white' : 'text-zinc-500'}`}>
-              Pour toi
-            </Text>
-            {mode === 'for_you' && <View className="h-0.5 w-6 bg-white self-center mt-1" />}
-          </TouchableOpacity>
+      {/* Header with Logo and Tabs */}
+      <View className="absolute left-0 right-0 top-0 z-10 pt-12 pb-2 bg-black/20">
+        <View className="flex-row justify-between items-center px-4 mb-2">
+          <Logo size="small" />
+          <View className="flex-row items-center">
+            {!isGuest && (
+              <>
+                <TouchableOpacity onPress={() => setMode('following')} className="px-3">
+                  <Text className={`text-base font-bold ${mode === 'following' ? 'text-white' : 'text-zinc-500'}`}>
+                    Abonnements
+                  </Text>
+                </TouchableOpacity>
+                <View className="w-[1px] h-3 bg-white/20" />
+              </>
+            )}
+            <TouchableOpacity onPress={() => setMode('for_you')} className="px-3">
+              <Text className={`text-base font-bold ${mode === 'for_you' ? 'text-white' : 'text-zinc-500'}`}>
+                Pour toi
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View className="w-10" /> {/* Spacer for balance */}
         </View>
-      )}
-
-      {isGuest && (
-        <View className="absolute left-0 right-0 top-0 z-10 flex-row justify-center items-center pt-14 bg-transparent">
-           <Text className="text-white font-bold text-lg">Pour toi</Text>
-           <View className="h-0.5 w-6 bg-white absolute bottom-[-6px] self-center" />
-        </View>
-      )}
+        
+        {/* Stories Horizontal Scroll */}
+        <Stories />
+      </View>
 
       <FlatList
         ref={flatListRef}

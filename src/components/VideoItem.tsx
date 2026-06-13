@@ -147,7 +147,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
     try {
       const shareUrl = `https://tiktokclone.app/v/${video.id}`;
       await Share.share({
-        message: `Regarde cette vidéo de @${video.user} sur TikTokClone ! \n\n${shareUrl}`,
+        message: `Regarde cette vidéo de @${video.user} sur G4 ! \n\n${shareUrl}`,
         url: video.url, // For iOS
       });
     } catch (error: any) {

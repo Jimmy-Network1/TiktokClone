@@ -1,4 +1,4 @@
-# Guide de Déploiement TikTokClone 🚀
+# Guide de Déploiement G4 🚀
 
 Ce document résume les étapes pour passer de l'environnement de développement à la production.
 
