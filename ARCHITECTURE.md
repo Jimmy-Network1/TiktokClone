@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 # Documentation de l'Architecture - G4 📱
-=======
 # Documentation de l'Architecture - TikTokClone 📱
->>>>>>> miguel
 
 Ce document explique l'organisation du code et les responsabilités de chaque dossier pour faciliter la compréhension et la présentation du projet.
 
