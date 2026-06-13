@@ -21,6 +21,29 @@ export interface Video {
 const PUBLIC_FEED_USERNAMES = ['tiktokclone', 'tiktok_fr', 'tiktok_africa', 'demo'];
 export type FeedMode = 'for_you' | 'following';
 
+const MOCK_VIDEOS: Video[] = [
+  {
+    id: 'mock-1',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lighting-in-the-city-at-night-21213-large.mp4',
+    thumbnail_url: 'https://images.pexels.com/photos/2387418/pexels-photo-2387418.jpeg',
+    caption: 'Bienvenue sur G4 ! 🚀 Le futur du contenu court est ici. #G4 #NextGen',
+    user_id: 'system',
+    profiles: { username: 'G4_Official', avatar_url: 'https://i.pravatar.cc/150?u=g4' },
+    likes: [],
+    comments: [],
+  },
+  {
+    id: 'mock-2',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4',
+    thumbnail_url: 'https://images.pexels.com/photos/1173/nature-tree-flowers-yellow.jpg',
+    caption: 'Détendez-vous avec un peu de nature. 🌿 #Zen #Nature',
+    user_id: 'system',
+    profiles: { username: 'NatureVibes', avatar_url: 'https://i.pravatar.cc/150?u=nature' },
+    likes: [],
+    comments: [],
+  }
+];
+
 export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUserId?: string) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +117,9 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
         }
       }).filter(v => v !== null) as Video[];
 
-      if (!isGuest) {
+      if (normalizedVideos.length === 0) {
+        setVideos(MOCK_VIDEOS);
+      } else if (!isGuest) {
         setVideos(normalizedVideos);
       } else {
         const guestVideos = normalizedVideos.filter(video => {
@@ -105,7 +130,9 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
       }
     } catch (err: any) {
       console.error('Error fetching videos:', err);
-      setError("Impossible de charger les vidéos.");
+      // Fallback to MOCK even on hard error
+      setVideos(MOCK_VIDEOS);
+      setError("Impossible de joindre le serveur. Affichage du mode démo.");
     } finally {
       setLoading(false);
     }
