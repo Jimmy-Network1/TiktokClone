@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator } from 'react-native';
+import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share } from 'react-native';
 import Video from 'react-native-video';
 import { Heart, MessageCircle, Share2, Music2 } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -143,6 +143,18 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
     });
   };
 
+  const handleShare = async () => {
+    try {
+      const shareUrl = `https://tiktokclone.app/v/${video.id}`;
+      await Share.share({
+        message: `Regarde cette vidéo de @${video.user} sur TikTokClone ! \n\n${shareUrl}`,
+        url: video.url, // For iOS
+      });
+    } catch (error: any) {
+      console.error('Share error:', error);
+    }
+  };
+
   return (
     <View style={{ height, width }} className="relative bg-black">
       <Pressable onPress={handleTouch} style={StyleSheet.absoluteFill}>
@@ -191,7 +203,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
           <Text className="text-white text-xs mt-1 font-bold shadow-sm">{video.comments.length}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="items-center">
+        <TouchableOpacity className="items-center" onPress={handleShare}>
           <View className="bg-white/10 p-2 rounded-full border border-white/10">
             <Share2 color="white" size={30} fill="white" />
           </View>

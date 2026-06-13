@@ -16,16 +16,19 @@ function App(): React.JSX.Element {
     setError(null);
     setAuthReady(false);
 
-    const timeoutPromise = new Promise((__unused, reject) =>
-      setTimeout(() => reject(new Error('Le serveur ne répond pas (Timeout)')), 8000)
-    );
+    let timeoutId: any;
+    const timeoutPromise = new Promise((__unused, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Le serveur ne répond pas (Timeout)')), 8000);
+    });
 
     try {
       const authPromise = supabase.auth.getSession();
       const result = await Promise.race([authPromise, timeoutPromise]) as any;
+      clearTimeout(timeoutId);
       setSession(result?.data?.session ?? null);
       setAuthReady(true);
     } catch (err: any) {
+      clearTimeout(timeoutId);
       console.error('Supabase auth initialization error:', err);
       // We still set authReady to true but maybe show a guest mode warning later
       // or if it's a critical network error, we show the retry UI
