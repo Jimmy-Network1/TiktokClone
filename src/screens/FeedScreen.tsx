@@ -59,13 +59,18 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   if (error && videos.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-black px-6">
-        <Text className="text-2xl font-bold text-white">Flux indisponible</Text>
-        <Text className="mt-2 text-center text-zinc-400">{error}</Text>
+        <Text className="text-2xl font-bold text-white mb-2">Flux indisponible</Text>
+        <Text className="text-center text-zinc-400 mb-4">{error}</Text>
+        <View className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 mb-6">
+           <Text className="text-zinc-500 text-[10px] font-mono">
+             {JSON.stringify(error, null, 2)}
+           </Text>
+        </View>
         <TouchableOpacity
-          className="mt-6 rounded-full bg-[#FE2C55] px-5 py-3"
+          className="rounded-full bg-[#FE2C55] px-8 py-4"
           onPress={onRefresh}
         >
-          <Text className="font-bold text-white">Réessayer</Text>
+          <Text className="font-bold text-white text-lg">Réessayer</Text>
         </TouchableOpacity>
       </View>
     );

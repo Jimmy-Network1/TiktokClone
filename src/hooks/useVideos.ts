@@ -80,10 +80,19 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
         throw fetchError;
       }
 
-      const normalizedVideos = (data || []).map(item => ({
-        ...item,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
-      })) as Video[];
+      const normalizedVideos = (data || []).map(item => {
+        try {
+          return {
+            ...item,
+            profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+            likes: item.likes || [],
+            comments: item.comments || [],
+          };
+        } catch (e) {
+          console.error('Normalization error for item:', item.id, e);
+          return null;
+        }
+      }).filter(v => v !== null) as Video[];
 
       if (!isGuest) {
         setVideos(normalizedVideos);

@@ -63,7 +63,7 @@ const AuthScreen = () => {
             </TouchableOpacity>
           ) : null}
 
-          <Text className="text-4xl font-bold text-center mb-10 text-white">TikTok Clone</Text>
+          <Text className="text-4xl font-bold text-center mb-10 text-white">G4</Text>
           
           <Text className="text-2xl font-semibold mb-6 text-white">
             {isSignUp ? 'Créer un compte' : 'Connexion'}

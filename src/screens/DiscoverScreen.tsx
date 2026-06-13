@@ -121,7 +121,7 @@ const DiscoverScreen = () => {
         />
       </View>
 
-      {loading && profiles.length === 0 && videos.length === 0 ? (
+      {loading && profiles.length === 0 && trendingVideos.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#fff" size="large" />
         </View>

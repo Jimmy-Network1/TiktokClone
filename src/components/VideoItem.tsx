@@ -11,9 +11,12 @@ import Animated, {
   withSequence, 
   withDelay,
   withTiming,
+  withRepeat,
+  Easing,
 } from 'react-native-reanimated';
 
 import { useAuth } from '../hooks/useAuth';
+import { useEffect } from 'react';
 
 const { height, width } = Dimensions.get('window');
 
@@ -42,6 +45,19 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
   
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 3000, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, []);
+
+  const diskStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
 
   const likedByCurrentUser = useMemo(
     () => !!session?.user && likes.some(item => item.user_id === session.user.id),
@@ -231,8 +247,27 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
           </View>
         </View>
       </View>
+
+      {/* Music Disk */}
+      <View className="absolute bottom-10 right-4">
+        <Animated.View style={[diskStyle, styles.diskContainer]}>
+           <View className="w-10 h-10 rounded-full bg-zinc-900 border-4 border-zinc-800 items-center justify-center">
+              <View className="w-4 h-4 rounded-full bg-zinc-700" />
+           </View>
+        </Animated.View>
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  diskContainer: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 8,
+  }
+});
 
 export default VideoItem;
