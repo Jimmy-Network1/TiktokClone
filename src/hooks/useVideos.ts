@@ -28,7 +28,7 @@ const MOCK_VIDEOS: Video[] = [
     thumbnail_url: 'https://images.pexels.com/photos/2387418/pexels-photo-2387418.jpeg',
     caption: 'Bienvenue sur G4 ! 🚀 Le futur du contenu court est ici. #G4 #NextGen',
     user_id: 'system',
-    profiles: { username: 'G4_Official', avatar_url: 'https://i.pravatar.cc/150?u=g4' },
+    profiles: { username: 'G4_Official', avatar_url: 'https://i.pravatar.cc/150?u=g4', full_name: 'G4 Team' },
     likes: [],
     comments: [],
   },
@@ -38,7 +38,7 @@ const MOCK_VIDEOS: Video[] = [
     thumbnail_url: 'https://images.pexels.com/photos/1173/nature-tree-flowers-yellow.jpg',
     caption: 'Détendez-vous avec un peu de nature. 🌿 #Zen #Nature',
     user_id: 'system',
-    profiles: { username: 'NatureVibes', avatar_url: 'https://i.pravatar.cc/150?u=nature' },
+    profiles: { username: 'NatureVibes', avatar_url: 'https://i.pravatar.cc/150?u=nature', full_name: 'Mother Nature' },
     likes: [],
     comments: [],
   }

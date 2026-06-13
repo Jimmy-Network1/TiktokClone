@@ -63,7 +63,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
         <Text className="text-center text-zinc-400 mb-4">{error}</Text>
         <View className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 mb-6">
            <Text className="text-zinc-500 text-[10px] font-mono">
-             {JSON.stringify(error, null, 2)}
+             {error ? String(error) : 'Erreur inconnue'}
            </Text>
         </View>
         <TouchableOpacity
@@ -133,12 +133,12 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
           <VideoItem 
             video={{
               id: item.id,
-              url: item.video_url,
-              thumbnailUrl: item.thumbnail_url,
-              userId: item.user_id,
-              user: item.profiles?.username || 'anonymous',
-              fullName: item.profiles?.full_name,
-              description: item.caption,
+              url: item.video_url || '',
+              thumbnailUrl: item.thumbnail_url || '',
+              userId: item.user_id || 'system',
+              user: item.profiles?.username || 'G4_User',
+              fullName: item.profiles?.full_name || 'G4 User',
+              description: item.caption || '',
               likes: item.likes || [],
               comments: item.comments || [],
               shares: '0',

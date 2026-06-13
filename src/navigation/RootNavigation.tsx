@@ -33,14 +33,6 @@ const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User 
 const MainTabs: React.FC<any> = ({ navigation }) => {
   const { session } = useAuth();
 
-  const handleTabPress = (e: any, target: string) => {
-    if (!session?.user) {
-      e.preventDefault();
-      navigation.navigate('Auth');
-      return;
-    }
-  };
-
   return (
     <Tab.Navigator
       screenOptions={{
@@ -81,7 +73,12 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarLabel: () => null,
         }}
         listeners={{
-          tabPress: (e) => handleTabPress(e, 'Upload'),
+          tabPress: (e) => {
+            if (!session?.user) {
+              e.preventDefault();
+              navigation.navigate('Auth');
+            }
+          },
         }}
       />
       <Tab.Screen
@@ -92,7 +89,12 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarLabel: 'Boîte'
         }}
         listeners={{
-          tabPress: (e) => handleTabPress(e, 'Inbox'),
+          tabPress: (e) => {
+            if (!session?.user) {
+              e.preventDefault();
+              navigation.navigate('Auth');
+            }
+          },
         }}
       />
       <Tab.Screen
@@ -103,7 +105,12 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarLabel: 'Profil'
         }}
         listeners={{
-          tabPress: (e) => handleTabPress(e, 'Profile'),
+          tabPress: (e) => {
+            if (!session?.user) {
+              e.preventDefault();
+              navigation.navigate('Auth');
+            }
+          },
         }}
       />
     </Tab.Navigator>
