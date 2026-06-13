@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Guide de Déploiement G4 🚀
+=======
+# Guide de Déploiement TikTokClone 🚀
+>>>>>>> miguel
 
 Ce document résume les étapes pour passer de l'environnement de développement à la production.
 

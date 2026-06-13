@@ -33,22 +33,28 @@ const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User 
 const MainTabs: React.FC<any> = ({ navigation }) => {
   const { session } = useAuth();
 
-  const requireAuth = (e: any) => {
-    if (session?.user) {
+  const handleTabPress = (e: any, target: string) => {
+    if (!session?.user) {
+      e.preventDefault();
+      navigation.navigate('Auth');
       return;
     }
-
-    e.preventDefault();
-    navigation.navigate('Auth');
   };
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#000', borderTopWidth: 0, height: 60, paddingBottom: 8 },
+        tabBarStyle: { 
+          backgroundColor: '#000', 
+          borderTopWidth: 0.5, 
+          borderTopColor: '#222',
+          height: 65, 
+          paddingBottom: 10,
+          paddingTop: 5
+        },
         tabBarActiveTintColor: '#fff',
-        tabBarInactiveTintColor: '#888',
+        tabBarInactiveTintColor: '#666',
       }}
     >
       <Tab.Screen
@@ -64,7 +70,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
         component={DiscoverScreen}
         options={{
           tabBarIcon: DiscoverIcon,
-          tabBarLabel: 'Amis'
+          tabBarLabel: 'Découvrir'
         }}
       />
       <Tab.Screen
@@ -74,7 +80,9 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarIcon: PlusIcon,
           tabBarLabel: () => null,
         }}
-        listeners={{ tabPress: requireAuth }}
+        listeners={{
+          tabPress: (e) => handleTabPress(e, 'Upload'),
+        }}
       />
       <Tab.Screen
         name="Inbox"
@@ -83,7 +91,9 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarIcon: InboxIcon,
           tabBarLabel: 'Boîte'
         }}
-        listeners={{ tabPress: requireAuth }}
+        listeners={{
+          tabPress: (e) => handleTabPress(e, 'Inbox'),
+        }}
       />
       <Tab.Screen
         name="Profile"
@@ -92,7 +102,9 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarIcon: ProfileIcon,
           tabBarLabel: 'Profil'
         }}
-        listeners={{ tabPress: requireAuth }}
+        listeners={{
+          tabPress: (e) => handleTabPress(e, 'Profile'),
+        }}
       />
     </Tab.Navigator>
   );

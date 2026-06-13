@@ -70,7 +70,15 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
 
       const { data, error: fetchError } = await query;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Supabase fetch error details:', {
+          message: fetchError.message,
+          details: fetchError.details,
+          hint: fetchError.hint,
+          code: fetchError.code
+        });
+        throw fetchError;
+      }
 
       const normalizedVideos = (data || []).map(item => ({
         ...item,
