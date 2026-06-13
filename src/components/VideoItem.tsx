@@ -92,7 +92,11 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
   };
 
   const triggerHeartAnimation = () => {
-    try { ReactNativeHapticFeedback.trigger("impactHeavy", hapticOptions); } catch(e) {}
+    try {
+      ReactNativeHapticFeedback.trigger("impactHeavy", hapticOptions);
+    } catch (e) {
+      console.log('Haptic feedback not available');
+    }
     heartScale.value = 0;
     heartOpacity.value = 1;
     heartScale.value = withSequence(
@@ -107,7 +111,9 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
     const newState = !isPaused;
     setIsPaused(newState);
     triggerPauseAnimation();
-    try { ReactNativeHapticFeedback.trigger("selection", hapticOptions); } catch(e) {}
+    try {
+      ReactNativeHapticFeedback.trigger("selection", hapticOptions);
+    } catch (e) {}
   };
 
   const handleLike = async (isDoubleTap = false) => {
@@ -131,7 +137,11 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
 
     setLikes(nextLikes);
     if (isAddingLike) triggerHeartAnimation();
-    else try { ReactNativeHapticFeedback.trigger("impactLight", hapticOptions); } catch(e) {}
+    else {
+      try {
+        ReactNativeHapticFeedback.trigger("impactLight", hapticOptions);
+      } catch (e) {}
+    }
 
     try {
       if (!isAddingLike) {
