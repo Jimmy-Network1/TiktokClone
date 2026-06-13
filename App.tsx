@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import RootNavigation from './src/navigation/RootNavigation';
 import Logo from './src/components/Logo';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { supabase } from './src/lib/supabase';
@@ -80,12 +81,14 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <NavigationContainer>
-        <RootNavigation />
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <NavigationContainer>
+          <RootNavigation />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

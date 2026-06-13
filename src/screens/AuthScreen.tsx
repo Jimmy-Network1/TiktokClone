@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react-native';
+import Logo from '../components/Logo';
 
 const AuthScreen = () => {
   const [email, setEmail] = useState('');
@@ -10,29 +12,37 @@ const AuthScreen = () => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation<any>();
 
   async function handleAuth() {
     if (!email || !password || (isSignUp && !username)) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+      Alert.alert('Champs requis', 'Veuillez remplir toutes les informations nécessaires.');
       return;
     }
 
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              username,
-              full_name: username,
+              username: username.toLowerCase().trim(),
+              full_name: username.trim(),
             },
           },
         });
+        
         if (error) throw error;
-        Alert.alert('Succès', 'Vérifiez votre email pour confirmer votre compte !');
+        
+        if (data.session) {
+           if (navigation.canGoBack()) navigation.goBack();
+        } else {
+           Alert.alert('Succès', 'Compte créé ! Connectez-vous maintenant.');
+           setIsSignUp(false);
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -44,7 +54,7 @@ const AuthScreen = () => {
         }
       }
     } catch (error: any) {
-      Alert.alert('Erreur', error.message);
+      Alert.alert('Erreur', error.message || 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -56,51 +66,69 @@ const AuthScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
-        <ScrollView contentContainerStyle={[styles.scrollContent, { justifyContent: 'center' }]} className="p-8">
+        <ScrollView contentContainerStyle={styles.scrollContent} className="p-8">
           {navigation.canGoBack() ? (
-            <TouchableOpacity className="absolute left-8 top-4 z-10" onPress={() => navigation.goBack()}>
-              <Text className="text-sm font-bold text-zinc-400">Fermer</Text>
+            <TouchableOpacity className="absolute left-6 top-2 z-10 p-2" onPress={() => navigation.goBack()}>
+              <Text className="text-sm font-bold text-zinc-500">Annuler</Text>
             </TouchableOpacity>
           ) : null}
 
-          <Text className="text-4xl font-bold text-center mb-10 text-white">G4</Text>
+          <View className="items-center mb-12 mt-4">
+             <Logo size="medium" />
+             <Text className="text-zinc-500 mt-2 text-xs font-mono tracking-widest uppercase">G4 Network</Text>
+          </View>
           
-          <Text className="text-2xl font-semibold mb-6 text-white">
-            {isSignUp ? 'Créer un compte' : 'Connexion'}
+          <Text className="text-3xl font-black mb-2 text-white">
+            {isSignUp ? 'Créer un compte' : 'Bon retour !'}
+          </Text>
+          <Text className="text-zinc-500 mb-10">
+            {isSignUp ? 'Rejoignez la communauté G4 dès maintenant.' : 'Connectez-vous pour voir vos vibes.'}
           </Text>
 
           {isSignUp && (
-            <TextInput
-              className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4 text-white"
-              placeholder="Nom d'utilisateur"
-              placeholderTextColor="#71717a"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-            />
+            <View className="flex-row items-center rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4">
+              <User color="#52525b" size={20} />
+              <TextInput
+                className="flex-1 text-white ml-3"
+                placeholder="Nom d'utilisateur"
+                placeholderTextColor="#71717a"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+              />
+            </View>
           )}
 
-          <TextInput
-            className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4 text-white"
-            placeholder="Email"
-            placeholderTextColor="#71717a"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
+          <View className="flex-row items-center rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-4">
+            <Mail color="#52525b" size={20} />
+            <TextInput
+              className="flex-1 text-white ml-3"
+              placeholder="Email"
+              placeholderTextColor="#71717a"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
 
-          <TextInput
-            className="rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-8 text-white"
-            placeholder="Mot de passe"
-            placeholderTextColor="#71717a"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View className="flex-row items-center rounded-2xl border border-white/10 bg-zinc-950 p-4 mb-8">
+            <Lock color="#52525b" size={20} />
+            <TextInput
+              className="flex-1 text-white ml-3"
+              placeholder="Mot de passe"
+              placeholderTextColor="#71717a"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="p-1">
+               {showPassword ? <EyeOff color="#52525b" size={20} /> : <Eye color="#52525b" size={20} />}
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
-            className="bg-[#FE2C55] rounded-2xl p-5 items-center"
+            className={`rounded-2xl p-5 items-center shadow-lg ${loading ? 'bg-zinc-800' : 'bg-[#FE2C55]'}`}
             onPress={handleAuth}
             disabled={loading}
           >
@@ -114,11 +142,14 @@ const AuthScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="mt-6 items-center"
+            className="mt-8 items-center"
             onPress={() => setIsSignUp(!isSignUp)}
           >
-            <Text className="text-[#25F4EE] font-medium">
-              {isSignUp ? 'Déjà un compte ? Connectez-vous' : "Pas de compte ? Inscrivez-vous"}
+            <Text className="text-zinc-500">
+              {isSignUp ? 'Déjà un compte ? ' : "Pas encore de compte ? "}
+              <Text className="text-[#2AF5FF] font-bold">
+                 {isSignUp ? 'Se connecter' : "S'inscrire"}
+              </Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>

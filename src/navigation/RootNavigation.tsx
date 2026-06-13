@@ -11,6 +11,7 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import InboxScreen from '../screens/InboxScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatScreen from '../screens/ChatScreen';
+import LiveScreen from '../screens/LiveScreen';
 import UploadScreen from '../screens/UploadScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
@@ -139,6 +140,7 @@ const RootNavigation: React.FC = () => {
       />
       <Stack.Screen name="Conversations" component={ConversationsScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="Live" component={LiveScreen} options={{ animation: 'fade' }} />
     </Stack.Navigator>
   );
 };

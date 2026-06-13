@@ -14,6 +14,7 @@ import Stories from '../components/Stories';
 import Logo from '../components/Logo';
 import { FeedMode, useVideos } from '../hooks/useVideos';
 import { useAuth } from '../hooks/useAuth';
+import { Tv } from 'lucide-react-native';
 
 const { height } = Dimensions.get('window');
 
@@ -81,7 +82,13 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
       {/* Header with Logo and Tabs */}
       <View className="absolute left-0 right-0 top-0 z-10 pt-12 pb-2 bg-black/20">
         <View className="flex-row justify-between items-center px-4 mb-2">
-          <Logo size="small" />
+          <TouchableOpacity onPress={() => navigation.navigate('Live')} className="p-1">
+             <View className="items-center">
+                <Tv color="#FE2C55" size={26} />
+                <Text className="text-[#FE2C55] text-[7px] font-black mt-[-4px]">LIVE</Text>
+             </View>
+          </TouchableOpacity>
+
           <View className="flex-row items-center">
             {!isGuest && (
               <>
@@ -99,7 +106,10 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
               </Text>
             </TouchableOpacity>
           </View>
-          <View className="w-10" /> {/* Spacer for balance */}
+          
+          <TouchableOpacity className="p-1" onPress={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}>
+             <Logo size="small" />
+          </TouchableOpacity>
         </View>
         
         {/* Stories Horizontal Scroll */}
