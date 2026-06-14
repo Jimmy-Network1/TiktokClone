@@ -11,6 +11,7 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import InboxScreen from '../screens/InboxScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatScreen from '../screens/ChatScreen';
+import LiveScreen from '../screens/LiveScreen';
 import UploadScreen from '../screens/UploadScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
@@ -33,22 +34,20 @@ const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User 
 const MainTabs: React.FC<any> = ({ navigation }) => {
   const { session } = useAuth();
 
-  const requireAuth = (e: any) => {
-    if (session?.user) {
-      return;
-    }
-
-    e.preventDefault();
-    navigation.navigate('Auth');
-  };
-
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#000', borderTopWidth: 0, height: 60, paddingBottom: 8 },
+        tabBarStyle: { 
+          backgroundColor: '#000', 
+          borderTopWidth: 0.5, 
+          borderTopColor: '#222',
+          height: 65, 
+          paddingBottom: 10,
+          paddingTop: 5
+        },
         tabBarActiveTintColor: '#fff',
-        tabBarInactiveTintColor: '#888',
+        tabBarInactiveTintColor: '#666',
       }}
     >
       <Tab.Screen
@@ -64,7 +63,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
         component={DiscoverScreen}
         options={{
           tabBarIcon: DiscoverIcon,
-          tabBarLabel: 'Amis'
+          tabBarLabel: 'Découvrir'
         }}
       />
       <Tab.Screen
@@ -74,7 +73,14 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarIcon: PlusIcon,
           tabBarLabel: () => null,
         }}
-        listeners={{ tabPress: requireAuth }}
+        listeners={{
+          tabPress: (e) => {
+            if (!session?.user) {
+              e.preventDefault();
+              navigation.navigate('Auth');
+            }
+          },
+        }}
       />
       <Tab.Screen
         name="Inbox"
@@ -83,7 +89,14 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarIcon: InboxIcon,
           tabBarLabel: 'Boîte'
         }}
-        listeners={{ tabPress: requireAuth }}
+        listeners={{
+          tabPress: (e) => {
+            if (!session?.user) {
+              e.preventDefault();
+              navigation.navigate('Auth');
+            }
+          },
+        }}
       />
       <Tab.Screen
         name="Profile"
@@ -92,7 +105,14 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
           tabBarIcon: ProfileIcon,
           tabBarLabel: 'Profil'
         }}
-        listeners={{ tabPress: requireAuth }}
+        listeners={{
+          tabPress: (e) => {
+            if (!session?.user) {
+              e.preventDefault();
+              navigation.navigate('Auth');
+            }
+          },
+        }}
       />
     </Tab.Navigator>
   );
@@ -120,6 +140,7 @@ const RootNavigation: React.FC = () => {
       />
       <Stack.Screen name="Conversations" component={ConversationsScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="Live" component={LiveScreen} options={{ animation: 'fade' }} />
     </Stack.Navigator>
   );
 };

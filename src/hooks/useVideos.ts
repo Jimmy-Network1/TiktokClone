@@ -21,6 +21,39 @@ export interface Video {
 const PUBLIC_FEED_USERNAMES = ['tiktokclone', 'tiktok_fr', 'tiktok_africa', 'demo'];
 export type FeedMode = 'for_you' | 'following';
 
+const MOCK_VIDEOS: Video[] = [
+  {
+    id: 'mock-1',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lighting-in-the-city-at-night-21213-large.mp4',
+    thumbnail_url: 'https://images.pexels.com/photos/2387418/pexels-photo-2387418.jpeg',
+    caption: 'Bienvenue sur G4 ! 🚀 Le futur du contenu court est ici. #G4 #NextGen',
+    user_id: 'system',
+    profiles: { username: 'G4_Official', avatar_url: 'https://i.pravatar.cc/150?u=g4', full_name: 'G4 Team' },
+    likes: [{ user_id: '1' }, { user_id: '2' }],
+    comments: [{ id: 'c1' }, { id: 'c2' }, { id: 'c3' }],
+  },
+  {
+    id: 'mock-3',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-ocean-at-sunset-1188-large.mp4',
+    thumbnail_url: 'https://images.pexels.com/photos/189349/pexels-photo-189349.jpeg',
+    caption: 'La mer est si calme ce soir... 🌊 #Ocean #Sunset #Vibes',
+    user_id: 'system',
+    profiles: { username: 'Traveler_G4', avatar_url: 'https://i.pravatar.cc/150?u=ocean', full_name: 'Max Travel' },
+    likes: [{ user_id: '1' }],
+    comments: [{ id: 'c4' }],
+  },
+  {
+    id: 'mock-2',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4',
+    thumbnail_url: 'https://images.pexels.com/photos/1173/nature-tree-flowers-yellow.jpg',
+    caption: 'Détendez-vous avec un peu de nature. 🌿 #Zen #Nature #G4Life',
+    user_id: 'system',
+    profiles: { username: 'NatureVibes', avatar_url: 'https://i.pravatar.cc/150?u=nature', full_name: 'Mother Nature' },
+    likes: [],
+    comments: [],
+  }
+];
+
 export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUserId?: string) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,14 +103,33 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
 
       const { data, error: fetchError } = await query;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Supabase fetch error details:', {
+          message: fetchError.message,
+          details: fetchError.details,
+          hint: fetchError.hint,
+          code: fetchError.code
+        });
+        throw fetchError;
+      }
 
-      const normalizedVideos = (data || []).map(item => ({
-        ...item,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
-      })) as Video[];
+      const normalizedVideos = (data || []).map(item => {
+        try {
+          return {
+            ...item,
+            profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+            likes: item.likes || [],
+            comments: item.comments || [],
+          };
+        } catch (e) {
+          console.error('Normalization error for item:', item.id, e);
+          return null;
+        }
+      }).filter(v => v !== null) as Video[];
 
-      if (!isGuest) {
+      if (normalizedVideos.length === 0) {
+        setVideos(MOCK_VIDEOS);
+      } else if (!isGuest) {
         setVideos(normalizedVideos);
       } else {
         const guestVideos = normalizedVideos.filter(video => {
@@ -88,7 +140,9 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
       }
     } catch (err: any) {
       console.error('Error fetching videos:', err);
-      setError("Impossible de charger les vidéos.");
+      // Fallback to MOCK even on hard error
+      setVideos(MOCK_VIDEOS);
+      setError("Impossible de joindre le serveur. Affichage du mode démo.");
     } finally {
       setLoading(false);
     }

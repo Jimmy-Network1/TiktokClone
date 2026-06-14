@@ -10,8 +10,11 @@ import {
   Platform,
 } from 'react-native';
 import VideoItem from '../components/VideoItem';
+import Stories from '../components/Stories';
+import Logo from '../components/Logo';
 import { FeedMode, useVideos } from '../hooks/useVideos';
 import { useAuth } from '../hooks/useAuth';
+import { Tv } from 'lucide-react-native';
 
 const { height } = Dimensions.get('window');
 
@@ -57,13 +60,18 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   if (error && videos.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-black px-6">
-        <Text className="text-2xl font-bold text-white">Flux indisponible</Text>
-        <Text className="mt-2 text-center text-zinc-400">{error}</Text>
+        <Text className="text-2xl font-bold text-white mb-2">Flux indisponible</Text>
+        <Text className="text-center text-zinc-400 mb-4">{error}</Text>
+        <View className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 mb-6">
+           <Text className="text-zinc-500 text-[10px] font-mono">
+             {error ? String(error) : 'Erreur inconnue'}
+           </Text>
+        </View>
         <TouchableOpacity
-          className="mt-6 rounded-full bg-[#FE2C55] px-5 py-3"
+          className="rounded-full bg-[#FE2C55] px-8 py-4"
           onPress={onRefresh}
         >
-          <Text className="font-bold text-white">Réessayer</Text>
+          <Text className="font-bold text-white text-lg">Réessayer</Text>
         </TouchableOpacity>
       </View>
     );
@@ -71,31 +79,42 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
 
   return (
     <View className="flex-1 bg-black">
-      {/* Header Tabs */}
-      {!isGuest && (
-        <View className="absolute left-0 right-0 top-0 z-10 flex-row justify-center items-center pt-14 pb-4 bg-transparent">
-          <TouchableOpacity onPress={() => setMode('following')} className="px-4">
-            <Text className={`text-base font-bold ${mode === 'following' ? 'text-white' : 'text-zinc-500'}`}>
-              Abonnements
-            </Text>
-            {mode === 'following' && <View className="h-0.5 w-6 bg-white self-center mt-1" />}
+      {/* Header with Logo and Tabs */}
+      <View className="absolute left-0 right-0 top-0 z-10 pt-12 pb-2 bg-black/20">
+        <View className="flex-row justify-between items-center px-4 mb-2">
+          <TouchableOpacity onPress={() => navigation.navigate('Live')} className="p-1">
+             <View className="items-center">
+                <Tv color="#FE2C55" size={26} />
+                <Text className="text-[#FE2C55] text-[7px] font-black mt-[-4px]">LIVE</Text>
+             </View>
           </TouchableOpacity>
-          <View className="w-0.5 h-3 bg-white/20" />
-          <TouchableOpacity onPress={() => setMode('for_you')} className="px-4">
-            <Text className={`text-base font-bold ${mode === 'for_you' ? 'text-white' : 'text-zinc-500'}`}>
-              Pour toi
-            </Text>
-            {mode === 'for_you' && <View className="h-0.5 w-6 bg-white self-center mt-1" />}
-          </TouchableOpacity>
-        </View>
-      )}
 
-      {isGuest && (
-        <View className="absolute left-0 right-0 top-0 z-10 flex-row justify-center items-center pt-14 bg-transparent">
-           <Text className="text-white font-bold text-lg">Pour toi</Text>
-           <View className="h-0.5 w-6 bg-white absolute bottom-[-6px] self-center" />
+          <View className="flex-row items-center">
+            {!isGuest && (
+              <>
+                <TouchableOpacity onPress={() => setMode('following')} className="px-3">
+                  <Text className={`text-base font-bold ${mode === 'following' ? 'text-white' : 'text-zinc-500'}`}>
+                    Abonnements
+                  </Text>
+                </TouchableOpacity>
+                <View className="w-[1px] h-3 bg-white/20" />
+              </>
+            )}
+            <TouchableOpacity onPress={() => setMode('for_you')} className="px-3">
+              <Text className={`text-base font-bold ${mode === 'for_you' ? 'text-white' : 'text-zinc-500'}`}>
+                Pour toi
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity className="p-1" onPress={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}>
+             <Logo size="small" />
+          </TouchableOpacity>
         </View>
-      )}
+        
+        {/* Stories Horizontal Scroll */}
+        <Stories />
+      </View>
 
       <FlatList
         ref={flatListRef}
@@ -124,12 +143,12 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
           <VideoItem 
             video={{
               id: item.id,
-              url: item.video_url,
-              thumbnailUrl: item.thumbnail_url,
-              userId: item.user_id,
-              user: item.profiles?.username || 'anonymous',
-              fullName: item.profiles?.full_name,
-              description: item.caption,
+              url: item.video_url || '',
+              thumbnailUrl: item.thumbnail_url || '',
+              userId: item.user_id || 'system',
+              user: item.profiles?.username || 'G4_User',
+              fullName: item.profiles?.full_name || 'G4 User',
+              description: item.caption || '',
               likes: item.likes || [],
               comments: item.comments || [],
               shares: '0',

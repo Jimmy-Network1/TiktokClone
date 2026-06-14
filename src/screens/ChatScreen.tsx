@@ -55,28 +55,64 @@ const ChatScreen: React.FC<ChatScreenProps> = () => {
   useEffect(() => {
     fetchMessages();
 
-    // Subscribe to new messages
-    const subscription = supabase
-      .channel(`messages:conversation_id=eq.${conversationId}`)
+    // 1. Mark messages as read when entering chat
+    const markRead = async () => {
+      if (session?.user) {
+        await supabase.rpc('mark_messages_as_read', {
+          conversation_uuid: conversationId,
+          user_uuid: session.user.id
+        });
+      }
+    };
+    markRead();
+
+    // 2. Subscribe to new messages and changes
+    const channel = supabase.channel(`conversation:${conversationId}`, {
+      config: {
+        presence: {
+          key: session?.user?.id,
+        },
+      },
+    });
+
+    channel
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
-          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+          if (payload.eventType === 'INSERT') {
+            const receivedMessage = payload.new as Message;
+            setMessages((prev) => {
+              // Avoid duplicates if insert was local
+              if (prev.some(m => m.id === receivedMessage.id)) return prev;
+              return [...prev, receivedMessage];
+            });
+            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            
+            // Mark as read if we are looking at the screen
+            if (receivedMessage.sender_id !== session?.user?.id) {
+               markRead();
+            }
+          }
         }
       )
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
 
     return () => {
-      supabase.removeChannel(subscription);
+      supabase.removeChannel(channel);
     };
-  }, [conversationId, fetchMessages]);
+  }, [conversationId, fetchMessages, session?.user]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !session?.user) return;

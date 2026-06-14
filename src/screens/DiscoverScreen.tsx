@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
@@ -32,7 +32,7 @@ const DiscoverScreen = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
-  const [videos, setVideos] = useState<DiscoverVideo[]>([]);
+  const [trendingVideos, setTrendingVideos] = useState<DiscoverVideo[]>([]);
 
   const loadDiscoverData = useCallback(async (rawQuery: string) => {
     try {
@@ -40,32 +40,36 @@ const DiscoverScreen = () => {
       const search = rawQuery.trim();
 
       if (!search) {
-        const [{ data: profileData }, { data: videosData }] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select('id, username, full_name, bio')
-            .order('updated_at', { ascending: false })
-            .limit(12),
-          supabase
-            .from('videos')
-            .select(`
-              id,
-              caption,
-              user_id,
-              profiles (username)
-            `)
-            .order('created_at', { ascending: false })
-            .limit(12),
-        ]);
+        // 1. Fetch Trending Videos via the new logic
+        const { data: trendingData, error: trendingError } = await supabase
+          .from('videos')
+          .select(`
+            id,
+            caption,
+            user_id,
+            profiles (username),
+            likes (count)
+          `)
+          .order('created_at', { ascending: false }) // Fallback to recent for now, but counting likes
+          .limit(10);
 
-        setProfiles((profileData as DiscoverProfile[]) || []);
-        setVideos(((videosData || []) as any[]).map(item => ({
+        // 2. Fetch Top Creators
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, bio')
+          .limit(10);
+
+        if (trendingError) throw trendingError;
+
+        setTrendingVideos(((trendingData || []) as any[]).map(item => ({
           ...item,
-          profiles: Array.isArray(item.profiles) ? item.profiles[0] || null : item.profiles || null,
+          profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
         })));
+        setProfiles((profileData as DiscoverProfile[]) || []);
         return;
       }
 
+      // Search logic remains the same
       const [{ data: profileData }, { data: videosData }] = await Promise.all([
         supabase
           .from('profiles')
@@ -85,9 +89,9 @@ const DiscoverScreen = () => {
       ]);
 
       setProfiles((profileData as DiscoverProfile[]) || []);
-      setVideos(((videosData || []) as any[]).map(item => ({
+      setTrendingVideos(((videosData || []) as any[]).map(item => ({
         ...item,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] || null : item.profiles || null,
+        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
       })));
     } catch (error) {
       console.error('Error loading discover data:', error);
@@ -96,13 +100,9 @@ const DiscoverScreen = () => {
     }
   }, []);
 
-  useEffect(() => {
-    loadDiscoverData(query);
-  }, [query, loadDiscoverData]);
-
   const sections: DiscoverSection[] = [
-    { title: 'Créateurs', data: profiles, type: 'profile' },
-    { title: 'Vidéos', data: videos, type: 'video' },
+    { title: query ? 'Résultats : Créateurs' : 'Créateurs à la une', data: profiles, type: 'profile' },
+    { title: query ? 'Résultats : Vidéos' : 'Vidéos populaires', data: trendingVideos, type: 'video' },
   ];
 
   return (
@@ -121,7 +121,7 @@ const DiscoverScreen = () => {
         />
       </View>
 
-      {loading && profiles.length === 0 && videos.length === 0 ? (
+      {loading && profiles.length === 0 && trendingVideos.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#fff" size="large" />
         </View>
@@ -142,30 +142,49 @@ const DiscoverScreen = () => {
               const profile = item as DiscoverProfile;
               return (
                 <TouchableOpacity
-                  className="mx-5 mb-3 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
+                  className="mx-5 mb-3 flex-row items-center rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
                   onPress={() => navigation.navigate('PublicProfile', { userId: profile.id })}
                 >
-                  <Text className="text-base font-semibold text-white">
-                    @{profile.username || 'utilisateur'}
-                  </Text>
-                  <Text className="mt-1 text-sm text-zinc-400">
-                    {profile.full_name || profile.bio || 'Profil public'}
-                  </Text>
+                  <View className="h-12 w-12 rounded-full bg-zinc-800 items-center justify-center mr-4 border border-white/10">
+                    <Text className="text-white font-bold">
+                       {(profile.username || 'U').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold text-white">
+                      @{profile.username || 'utilisateur'}
+                    </Text>
+                    <Text className="text-xs text-zinc-500" numberOfLines={1}>
+                      {profile.full_name || 'Profil public'}
+                    </Text>
+                  </View>
+                  <View className="bg-zinc-800 px-3 py-1 rounded-full">
+                     <Text className="text-white text-[10px] font-bold">Voir</Text>
+                  </View>
                 </TouchableOpacity>
               );
             } else {
+              // Note: For videos, we keep the original list for now but with better style.
+              // A real grid would require changing the SectionList structure or using a custom layout.
               const video = item as DiscoverVideo;
               return (
                 <TouchableOpacity
-                  className="mx-5 mb-3 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
+                  className="mx-5 mb-3 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950"
                   onPress={() => navigation.navigate('PublicProfile', { userId: video.user_id })}
                 >
-                  <Text className="text-sm font-semibold text-zinc-300">
-                    @{video.profiles?.username || 'créateur'}
-                  </Text>
-                  <Text className="mt-1 text-base text-white" numberOfLines={2}>
-                    {video.caption || 'Sans légende'}
-                  </Text>
+                  <View className="flex-row items-center p-4">
+                    <View className="h-16 w-12 rounded-lg bg-zinc-900 items-center justify-center mr-4">
+                        <Text className="text-zinc-700 text-xs">VID</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-[#FE2C55]">
+                        @{video.profiles?.username || 'créateur'}
+                      </Text>
+                      <Text className="mt-1 text-base text-white" numberOfLines={2}>
+                        {video.caption || 'Sans légende'}
+                      </Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               );
             }
