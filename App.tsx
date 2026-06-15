@@ -81,14 +81,12 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <NavigationContainer>
-          <RootNavigation />
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <NavigationContainer>
+        <RootNavigation />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 
