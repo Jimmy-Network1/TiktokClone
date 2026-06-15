@@ -34,7 +34,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'medium' }) => {
       -1,
       true
     );
-  }, []);
+  }, [scale, glowOpacity]);
 
   const fontSize = size === 'small' ? 28 : size === 'medium' ? 48 : 72;
   

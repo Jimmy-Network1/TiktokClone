@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { FlatList, Text, TouchableOpacity, View, Dimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import AuthWall from '../components/AuthWall';
-import { Play } from 'lucide-react-native';
+import { Play, Bookmark, Heart } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../hooks/useAuth';
@@ -18,6 +18,7 @@ interface ProfileData {
   username: string | null;
   full_name: string | null;
   bio: string | null;
+  avatar_url?: string | null;
 }
 
 interface ProfileVideo {
@@ -28,6 +29,7 @@ interface ProfileVideo {
   thumbnail_url?: string | null;
   likes: { id: string }[];
   comments: { id: string }[];
+  video_views?: { id: string }[];
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = () => {
@@ -35,9 +37,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
   const navigation = useNavigation<any>();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [videos, setVideos] = useState<ProfileVideo[]>([]);
+  const [bookmarkedVideos, setBookmarkedVideos] = useState<ProfileVideo[]>([]);
+  const [likedVideos, setLikedVideos] = useState<ProfileVideo[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'videos' | 'favorites' | 'likes'>('videos');
 
   const loadProfile = useCallback(async () => {
     if (!session?.user) return;
@@ -50,10 +55,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
         videosRes,
         followersRes,
         followingRes,
+        bookmarkedRes,
+        likedRes,
       ] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, username, full_name, bio')
+          .select('id, username, full_name, bio, avatar_url')
           .eq('id', session.user.id)
           .single(),
         supabase
@@ -65,7 +72,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
             video_url,
             thumbnail_url,
             likes (id),
-            comments (id)
+            comments (id),
+            video_views (id)
           `)
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false }),
@@ -77,12 +85,52 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
           .from('follows')
           .select('id', { count: 'exact', head: true })
           .eq('follower_id', session.user.id),
+        supabase
+          .from('bookmarks')
+          .select(`
+            video:videos (
+              id,
+              caption,
+              created_at,
+              video_url,
+              thumbnail_url,
+              likes (id),
+              comments (id)
+            )
+          `)
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('likes')
+          .select(`
+            video:videos (
+              id,
+              caption,
+              created_at,
+              video_url,
+              thumbnail_url,
+              likes (id),
+              comments (id)
+            )
+          `)
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false }),
       ]);
 
       setProfile(profileRes.data as ProfileData || { id: session.user.id, username: 'G4_User', full_name: 'G4 Explorer', bio: '' });
       setVideos((videosRes.data as ProfileVideo[]) || []);
       setFollowersCount(followersRes.count || 0);
       setFollowingCount(followingRes.count || 0);
+
+      const bookmarksData = (bookmarkedRes.data || [])
+        .map((row: any) => row.video)
+        .filter(Boolean);
+      setBookmarkedVideos(bookmarksData as ProfileVideo[]);
+
+      const likedData = (likedRes.data || [])
+        .map((row: any) => row.video)
+        .filter(Boolean);
+      setLikedVideos(likedData as ProfileVideo[]);
     } catch (error) {
       console.error('Profile load error:', error);
     } finally {
@@ -104,12 +152,18 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
     );
   }
 
+  const totalLikes = videos.reduce((acc, curr) => acc + (curr.likes?.length || 0), 0);
+
   const renderHeader = () => (
     <View className="px-5 pb-6 pt-10 items-center">
-      <View className="h-24 w-24 items-center justify-center rounded-full bg-zinc-900 border-2 border-[#FE2C55]">
-        <Text className="text-3xl font-bold text-white">
-          {(profile?.username || 'U').charAt(0).toUpperCase()}
-        </Text>
+      <View className="h-24 w-24 rounded-full border-2 border-[#FE2C55] overflow-hidden bg-zinc-900 items-center justify-center">
+        {profile?.avatar_url ? (
+          <Image source={{ uri: profile.avatar_url }} className="h-full w-full" />
+        ) : (
+          <Text className="text-3xl font-bold text-white">
+            {(profile?.username || 'U').charAt(0).toUpperCase()}
+          </Text>
+        )}
       </View>
 
       <Text className="mt-4 text-xl font-bold text-white">
@@ -126,7 +180,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
            <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">Abonnés</Text>
         </View>
         <View className="items-center px-4">
-           <Text className="text-lg font-bold text-white">{videos.length}</Text>
+           <Text className="text-lg font-bold text-white">{totalLikes}</Text>
            <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">J'aime</Text>
         </View>
       </View>
@@ -156,22 +210,47 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
         </Text>
       )}
 
-      {/* Tabs placeholder */}
+      {/* Tabs */}
       <View className="mt-8 w-full border-t border-white/5 flex-row">
-         <View className="flex-1 items-center py-3 border-b-2 border-white">
-            <Play color="white" size={20} />
-         </View>
-         <View className="flex-1 items-center py-3">
-            <Text className="text-zinc-600">🔒</Text>
-         </View>
+         <TouchableOpacity 
+           onPress={() => setActiveTab('videos')}
+           className={`flex-1 items-center py-4 border-b-2 ${activeTab === 'videos' ? 'border-white' : 'border-transparent'}`}
+         >
+            <Play color={activeTab === 'videos' ? 'white' : '#71717a'} size={20} />
+         </TouchableOpacity>
+         <TouchableOpacity 
+           onPress={() => setActiveTab('favorites')}
+           className={`flex-1 items-center py-4 border-b-2 ${activeTab === 'favorites' ? 'border-white' : 'border-transparent'}`}
+         >
+            <Bookmark color={activeTab === 'favorites' ? 'white' : '#71717a'} size={20} />
+         </TouchableOpacity>
+         <TouchableOpacity 
+           onPress={() => setActiveTab('likes')}
+           className={`flex-1 items-center py-4 border-b-2 ${activeTab === 'likes' ? 'border-white' : 'border-transparent'}`}
+         >
+            <Heart color={activeTab === 'likes' ? 'white' : '#71717a'} size={20} />
+         </TouchableOpacity>
       </View>
     </View>
   );
 
+  const getTabVideos = () => {
+    switch (activeTab) {
+      case 'videos':
+        return videos;
+      case 'favorites':
+        return bookmarkedVideos;
+      case 'likes':
+        return likedVideos;
+      default:
+        return videos;
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-black" edges={['top']}>
       <FlatList
-        data={videos}
+        data={getTabVideos()}
         numColumns={3}
         keyExtractor={item => item.id}
         ListHeaderComponent={renderHeader}
@@ -189,9 +268,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
             </View>
             
             <View className="absolute bottom-1 left-1 flex-row items-center">
-               <Play color="white" size={12} />
+               <Play color="white" size={12} fill="white" />
                <Text className="text-white text-[10px] font-bold ml-1">
-                  {item.likes.length}
+                  {item.video_views?.length || 0}
                </Text>
             </View>
           </TouchableOpacity>
@@ -199,7 +278,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
         ListEmptyComponent={
           !loading ? (
             <View className="py-20 items-center justify-center">
-              <Text className="text-zinc-500 font-medium">Pas encore de vidéos.</Text>
+              <Text className="text-zinc-500 font-medium">
+                {activeTab === 'videos' && "Pas encore de vidéos publiées."}
+                {activeTab === 'favorites' && "Pas encore de favoris enregistrés."}
+                {activeTab === 'likes' && "Pas encore de vidéos aimées."}
+              </Text>
             </View>
           ) : null
         }

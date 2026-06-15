@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View, Dimensions, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { Play, ChevronLeft, MessageCircle } from 'lucide-react-native';
@@ -12,6 +12,7 @@ interface PublicProfile {
   username: string | null;
   full_name: string | null;
   bio: string | null;
+  avatar_url?: string | null;
 }
 
 interface ProfileVideo {
@@ -20,6 +21,7 @@ interface ProfileVideo {
   created_at: string;
   likes: { id: string }[];
   comments: { id: string }[];
+  video_views?: { id: string }[];
 }
 
 interface PublicProfileRouteParams {
@@ -53,7 +55,7 @@ const PublicProfileScreen = () => {
         { count: followers },
         { count: following },
       ] = await Promise.all([
-        supabase.from('profiles').select('id, username, full_name, bio').eq('id', userId).single(),
+        supabase.from('profiles').select('id, username, full_name, bio, avatar_url').eq('id', userId).single(),
         supabase
           .from('videos')
           .select(`
@@ -61,7 +63,8 @@ const PublicProfileScreen = () => {
             caption,
             created_at,
             likes (id),
-            comments (id)
+            comments (id),
+            video_views (id)
           `)
           .eq('user_id', userId)
           .order('created_at', { ascending: false }),
@@ -200,12 +203,18 @@ const PublicProfileScreen = () => {
     }
   };
 
+  const totalLikes = videos.reduce((acc, curr) => acc + (curr.likes?.length || 0), 0);
+
   const renderHeader = () => (
     <View className="items-center px-5 pb-6 pt-6">
-      <View className="h-24 w-24 items-center justify-center rounded-full bg-zinc-900 border-2 border-[#25F4EE]">
-        <Text className="text-3xl font-bold text-white">
-          {(profile?.username || 'U').charAt(0).toUpperCase()}
-        </Text>
+      <View className="h-24 w-24 rounded-full border-2 border-[#25F4EE] overflow-hidden bg-zinc-900 items-center justify-center">
+        {profile?.avatar_url ? (
+          <Image source={{ uri: profile.avatar_url }} className="h-full w-full" />
+        ) : (
+          <Text className="text-3xl font-bold text-white">
+            {(profile?.username || 'U').charAt(0).toUpperCase()}
+          </Text>
+        )}
       </View>
 
       <Text className="mt-4 text-xl font-bold text-white">
@@ -222,7 +231,7 @@ const PublicProfileScreen = () => {
            <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">Abonnés</Text>
         </View>
         <View className="items-center px-4">
-           <Text className="text-lg font-bold text-white">{videos.length}</Text>
+           <Text className="text-lg font-bold text-white">{totalLikes}</Text>
            <Text className="text-xs text-zinc-500 font-medium uppercase tracking-tighter">J'aime</Text>
         </View>
       </View>
@@ -301,12 +310,12 @@ const PublicProfileScreen = () => {
             <View className="flex-1 items-center justify-center">
                <Play color="rgba(255,255,255,0.2)" size={40} />
             </View>
-            <View className="absolute bottom-1 left-1 flex-row items-center">
-               <Play color="white" size={12} />
-               <Text className="text-white text-[10px] font-bold ml-1">
-                  {item.likes.length}
-               </Text>
-            </View>
+             <View className="absolute bottom-1 left-1 flex-row items-center">
+                <Play color="white" size={12} fill="white" />
+                <Text className="text-white text-[10px] font-bold ml-1">
+                   {item.video_views?.length || 0}
+                </Text>
+             </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={

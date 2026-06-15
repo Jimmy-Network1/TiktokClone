@@ -8,9 +8,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { supabase } from './src/lib/supabase';
 import { Session } from '@supabase/supabase-js';
+import { AuthProvider } from './src/context/AuthContext';
 
 function App(): React.JSX.Element {
-  const [_, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +31,6 @@ function App(): React.JSX.Element {
       const result = await Promise.race([authPromise, timeoutPromise]) as any;
       clearTimeout(timeoutId);
       console.log('Auth session received');
-      setSession(result?.data?.session ?? null);
       setAuthReady(true);
     } catch (err: any) {
       clearTimeout(timeoutId);
@@ -46,14 +45,6 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     initAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, _session) => {
-      setSession(_session);
-    });
-
-    return () => subscription.unsubscribe();
   }, [initAuth]);
 
   if (error) {
@@ -84,9 +75,11 @@ function App(): React.JSX.Element {
     <ErrorBoundary>
       <SafeAreaProvider>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <NavigationContainer>
-          <RootNavigation />
-        </NavigationContainer>
+        <AuthProvider>
+          <NavigationContainer>
+            <RootNavigation />
+          </NavigationContainer>
+        </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );
