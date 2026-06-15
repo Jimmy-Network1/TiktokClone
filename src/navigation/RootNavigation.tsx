@@ -16,20 +16,29 @@ import UploadScreen from '../screens/UploadScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
-import { useNavigation } from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const HomeIcon = ({ color, size }: { color: string; size: number }) => <Home color={color} size={size} />;
 const DiscoverIcon = ({ color, size }: { color: string; size: number }) => <Search color={color} size={size} />;
-const PlusIcon = () => (
-  <View className="bg-white rounded-lg px-3 py-1">
-    <PlusSquare color="#000" size={24} />
-  </View>
-);
+const PlusIcon = ({ focused }: { focused: boolean }) => {
+  return (
+    <View style={{ 
+      backgroundColor: focused ? '#FFF' : '#2AF5FF', 
+      borderRadius: 10, 
+      paddingHorizontal: 12, 
+      paddingVertical: 4,
+      transform: [{ scale: focused ? 1.1 : 1 }]
+    }}>
+      <PlusSquare color="#000" size={26} strokeWidth={2.5} />
+    </View>
+  );
+};
 const InboxIcon = ({ color, size }: { color: string; size: number }) => <MessageCircle color={color} size={size} />;
 const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User color={color} size={size} />;
+
+const PlusIconWrapper = ({ focused }: { focused: boolean }) => <PlusIcon focused={focused} />;
 
 const MainTabs: React.FC<any> = ({ navigation }) => {
   const { session } = useAuth();
@@ -70,7 +79,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
         name="Upload"
         component={UploadScreen}
         options={{
-          tabBarIcon: PlusIcon,
+          tabBarIcon: PlusIconWrapper,
           tabBarLabel: () => null,
         }}
         listeners={{

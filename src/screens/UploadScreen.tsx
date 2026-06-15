@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,7 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
   const [video, setVideo] = useState<ImagePickerResponse | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const navigation = useNavigation<any>();
 
   if (!session) {
@@ -56,6 +57,7 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
     }
 
     setUploading(true);
+    setUploadProgress(0);
     
     try {
       const asset = video.assets[0];
@@ -63,17 +65,22 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
       const fileName = `${session?.user.id}-${Date.now()}.${extension}`;
       const filePath = `${session?.user.id}/${fileName}`;
 
-      // 1. Upload to Storage with progress
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => (prev < 0.9 ? prev + 0.1 : prev));
+      }, 500);
+
+      // 1. Upload to Storage
       const { error: uploadError } = await supabase.storage
         .from('videos')
         .upload(filePath, {
           uri: asset.uri,
           name: fileName,
           type: asset.type || 'video/mp4',
-        } as any, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        } as any);
+
+      clearInterval(progressInterval);
+      setUploadProgress(1);
 
       if (uploadError) throw uploadError;
 
@@ -151,14 +158,19 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
           />
 
           <TouchableOpacity
-            className={`rounded-2xl p-5 items-center ${uploading ? 'bg-zinc-800' : 'bg-[#FE2C55]'}`}
+            className={`rounded-2xl p-5 items-center shadow-xl ${uploading ? 'bg-zinc-800' : 'bg-[#FE2C55]'}`}
             onPress={handleUpload}
             disabled={uploading}
           >
             {uploading ? (
-              <ActivityIndicator color="white" />
+              <View className="w-full px-4">
+                <View className="h-1 bg-white/20 rounded-full overflow-hidden mb-2">
+                   <View style={{ width: `${uploadProgress * 100}%` }} className="h-full bg-[#2AF5FF]" />
+                </View>
+                <Text className="text-white font-bold text-center text-xs">Publication en cours... {Math.round(uploadProgress * 100)}%</Text>
+              </View>
             ) : (
-              <Text className="text-white font-bold text-lg">Publier maintenant</Text>
+              <Text className="text-white font-bold text-lg">Publier la vibe</Text>
             )}
           </TouchableOpacity>
         </ScrollView>

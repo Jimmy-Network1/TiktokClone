@@ -9,6 +9,7 @@
     "start": "react-native start",
     "test": "jest",
     "clean": "cd android && ./gradlew clean && cd .. && rm -rf node_modules && npm install",
+    "god-mode": "rm -rf android/.gradle android/app/build android/build node_modules && npm install && npx react-native start --reset-cache",
     "setup": "npm install && cd ios && pod install && cd .."
   },
   "dependencies": {

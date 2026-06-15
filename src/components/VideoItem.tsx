@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Vibration } from 'react-native';
 import { Video } from 'react-native-video';
 import { Heart, MessageCircle, Share2, Music2, Play, Pause } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
-import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -19,11 +19,6 @@ import Animated, {
 import { useAuth } from '../hooks/useAuth';
 
 const { height, width } = Dimensions.get('window');
-
-const hapticOptions = {
-  enableVibrateFallback: true,
-  ignoreAndroidSystemSettings: false,
-};
 
 interface VideoItemProps {
   video: {
@@ -62,7 +57,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
       -1,
       false
     );
-  }, []);
+  }, [rotation]);
 
   const diskStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
@@ -93,10 +88,8 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
 
   const triggerHeartAnimation = () => {
     try {
-      ReactNativeHapticFeedback.trigger("impactHeavy", hapticOptions);
-    } catch (e) {
-      console.log('Haptic feedback not available');
-    }
+      Vibration.vibrate(50);
+    } catch (e) {}
     heartScale.value = 0;
     heartOpacity.value = 1;
     heartScale.value = withSequence(
@@ -112,8 +105,10 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
     setIsPaused(newState);
     triggerPauseAnimation();
     try {
-      ReactNativeHapticFeedback.trigger("selection", hapticOptions);
-    } catch (e) {}
+      Vibration.vibrate(10);
+    } catch {
+      // Ignore vibration error
+    }
   };
 
   const handleLike = async (isDoubleTap = false) => {
@@ -139,8 +134,10 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
     if (isAddingLike) triggerHeartAnimation();
     else {
       try {
-        ReactNativeHapticFeedback.trigger("impactLight", hapticOptions);
-      } catch (e) {}
+        Vibration.vibrate(20);
+      } catch {
+        // Ignore
+      }
     }
 
     try {
@@ -149,7 +146,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video }) => {
       } else {
         await supabase.from('likes').upsert({ video_id: video.id, user_id: currentUserId }, { onConflict: 'video_id,user_id' });
       }
-    } catch (error) {
+    } catch {
       setLikes(previousLikes);
     }
   };

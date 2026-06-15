@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Heart, X, Send, Users, Star } from 'lucide-react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { Heart, X, Users, Star } from 'lucide-react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
 const MESSAGES = [
   { id: '1', user: 'momo_99', text: 'Incroyable ce live ! 🔥' },
@@ -18,12 +18,13 @@ const LiveScreen = () => {
   const heartScale = useSharedValue(1);
 
   useEffect(() => {
-    heartScale.value = withRepeat(
+    const scale = heartScale;
+    scale.value = withRepeat(
       withSequence(withTiming(1.2, { duration: 500 }), withTiming(1, { duration: 500 })),
       -1,
       true
     );
-  }, []);
+  }, [heartScale]);
 
   const heartStyle = useAnimatedStyle(() => ({
     transform: [{ scale: heartScale.value }],
@@ -99,7 +100,7 @@ const LiveScreen = () => {
             <TouchableOpacity className="bg-zinc-800 p-3 rounded-full">
                <Users color="white" size={20} />
             </TouchableOpacity>
-            <TouchableOpacity className="bg-[#FE2C55] p-3 rounded-full">
+            <TouchableOpacity className="bg-[#FE2C55] p-3 rounded-full" onPress={() => {}}>
                <Heart color="white" size={20} fill="white" />
             </TouchableOpacity>
           </View>
