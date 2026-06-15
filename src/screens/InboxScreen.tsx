@@ -13,7 +13,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Heart, MessageCircle, UserPlus, Send } from 'lucide-react-native';
 
-
 interface NotificationItem {
   id: string;
   type: 'like' | 'comment' | 'follow';
@@ -74,6 +73,57 @@ const InboxScreen: React.FC<InboxScreenProps> = () => {
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
+
+  // Real-time notifications subscription
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const channel = supabase.channel(`notifications:${session.user.id}`);
+
+    channel
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        async (payload) => {
+          const newNotif = payload.new;
+          
+          // Fetch actor profile information
+          const { data: actorProfile } = await supabase
+            .from('profiles')
+            .select('id, username, full_name')
+            .eq('id', newNotif.actor_id)
+            .single();
+
+          const completeNotif: NotificationItem = {
+            id: newNotif.id,
+            type: newNotif.type,
+            created_at: newNotif.created_at,
+            is_read: newNotif.is_read,
+            video_id: newNotif.video_id,
+            actor: {
+              id: actorProfile?.id || newNotif.actor_id,
+              username: actorProfile?.username || 'utilisateur',
+              full_name: actorProfile?.full_name || 'Utilisateur',
+            }
+          };
+
+          setNotifications(prev => {
+            if (prev.some(n => n.id === completeNotif.id)) return prev;
+            return [completeNotif, ...prev];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
 
   const handleNotificationPress = async (notification: NotificationItem) => {
     if (!notification.is_read) {

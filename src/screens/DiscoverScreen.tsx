@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { ActivityIndicator, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
@@ -19,20 +19,34 @@ interface DiscoverVideo {
   } | null;
 }
 
-type DiscoverItem = DiscoverProfile | DiscoverVideo;
+interface DiscoverHashtag {
+  id: string;
+  tag: string;
+  videoCount: number;
+}
+
+type DiscoverItem = DiscoverProfile | DiscoverVideo | DiscoverHashtag;
 
 interface DiscoverSection {
   title: string;
   data: DiscoverItem[];
-  type: 'profile' | 'video';
+  type: 'profile' | 'video' | 'hashtag';
 }
 
 const DiscoverScreen = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
   const [trendingVideos, setTrendingVideos] = useState<DiscoverVideo[]>([]);
+  const [popularHashtags] = useState<DiscoverHashtag[]>([
+    { id: 'h1', tag: 'G4', videoCount: 124 },
+    { id: 'h2', tag: 'Vibes', videoCount: 89 },
+    { id: 'h3', tag: 'Animation', videoCount: 54 },
+    { id: 'h4', tag: 'Art', videoCount: 42 },
+    { id: 'h5', tag: 'Sunset', videoCount: 31 },
+  ]);
 
   const loadDiscoverData = useCallback(async (rawQuery: string) => {
     try {
@@ -100,9 +114,24 @@ const DiscoverScreen = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [query]);
+
+  useEffect(() => {
+    loadDiscoverData(debouncedQuery);
+  }, [debouncedQuery, loadDiscoverData]);
+
   const sections: DiscoverSection[] = [
-    { title: query ? 'Résultats : Créateurs' : 'Créateurs à la une', data: profiles, type: 'profile' },
-    { title: query ? 'Résultats : Vidéos' : 'Vidéos populaires', data: trendingVideos, type: 'video' },
+    ...(!debouncedQuery ? [{ title: 'Hashtags populaires 🔥', data: popularHashtags, type: 'hashtag' as const }] : []),
+    { title: debouncedQuery ? 'Résultats : Créateurs' : 'Créateurs à la une', data: profiles, type: 'profile' },
+    { title: debouncedQuery ? 'Résultats : Vidéos' : 'Vidéos populaires', data: trendingVideos, type: 'video' },
   ];
 
   return (
@@ -138,7 +167,30 @@ const DiscoverScreen = () => {
             </View>
           )}
           renderItem={({ item, section }) => {
-            if (section.type === 'profile') {
+            if (section.type === 'hashtag') {
+              const hashtagItem = item as DiscoverHashtag;
+              return (
+                <TouchableOpacity
+                  className="mx-5 mb-3 flex-row items-center rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
+                  onPress={() => navigation.navigate('Hashtag', { hashtag: hashtagItem.tag })}
+                >
+                  <View className="h-10 w-10 rounded-full bg-zinc-900 items-center justify-center mr-4 border border-white/10">
+                     <Text className="text-[#2AF5FF] font-bold text-lg">#</Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-bold text-white">
+                      #{hashtagItem.tag}
+                    </Text>
+                    <Text className="text-xs text-zinc-500">
+                      {hashtagItem.videoCount}k vues
+                    </Text>
+                  </View>
+                  <View className="bg-zinc-800 px-3 py-1 rounded-full">
+                     <Text className="text-white text-[10px] font-bold">Explorer</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            } else if (section.type === 'profile') {
               const profile = item as DiscoverProfile;
               return (
                 <TouchableOpacity
@@ -191,7 +243,7 @@ const DiscoverScreen = () => {
           }}
           ListFooterComponent={<View className="h-20" />}
           refreshing={loading}
-          onRefresh={() => loadDiscoverData(query)}
+          onRefresh={() => loadDiscoverData(debouncedQuery)}
         />
       )}
     </View>

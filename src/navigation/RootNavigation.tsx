@@ -13,6 +13,7 @@ import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import LiveScreen from '../screens/LiveScreen';
 import UploadScreen from '../screens/UploadScreen';
+import HashtagScreen from '../screens/HashtagScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
@@ -150,6 +151,8 @@ const RootNavigation: React.FC = () => {
       <Stack.Screen name="Conversations" component={ConversationsScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="Live" component={LiveScreen} options={{ animation: 'fade' }} />
+      <Stack.Screen name="Hashtag" component={HashtagScreen} />
+      <Stack.Screen name="HashtagFeed" component={FeedScreen} />
     </Stack.Navigator>
   );
 };
