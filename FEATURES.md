@@ -43,27 +43,33 @@ Ce document est votre feuille de route pour expliquer le projet **G4**. Chaque s
 
 ---
 
-## 💡 Questions Pièges et Défenses Techniques (La "God-Mode" Defense)
 
-Votre enseignant risque de vouloir tester vos connaissances. Préparez-vous avec ces arguments :
+---
 
-### 1. Sur la fonctionnalité "Live"
-*   **Question** : "Est-ce un vrai Live ?"
-*   **Défense** : "C'est une interface de simulation de Live haute fidélité. Elle démontre notre capacité à gérer le chat en temps réel et les animations synchronisées. Un vrai live professionnel demanderait une infrastructure type WebRTC ou RTMP, ce qui est hors périmètre pour une app de démonstration mobile, mais notre UI est prête à accueillir ce flux."
+## 🗺️ Carte de Navigation du Code (Pour vos explications)
 
-### 2. Sur la synchronisation des commentaires
-*   **Question** : "Comment les commentaires apparaissent-ils sans recharger l'app ?"
-*   **Défense** : "Nous utilisons Supabase Realtime avec des *Subscriptions*. Dès qu'un commentaire est inséré dans la base de données, il est poussé via WebSockets vers tous les clients connectés. C'est du vrai temps réel."
+Voici où pointer le doigt dans votre code quand on vous posera des questions :
 
-### 3. Sur la stabilité (les Crashs)
-*   **Question** : "Que se passe-t-il si l'app rencontre une erreur inattendue ?"
-*   **Défense** : "Nous avons implémenté un `ErrorBoundary` global. Au lieu de crash (écran blanc ou fermeture), l'app intercepte l'erreur, la logue, et propose à l'utilisateur de relancer l'interface proprement. C'est un standard industriel."
+### 1. Changer le nom de l'application
+*   **Où chercher ?**
+    *   `app.json` : Modifiez `displayName`.
+    *   `android/app/src/main/res/values/strings.xml` : Modifiez `app_name`.
+    *   `android/app/src/main/java/com/tiktokclone/MainActivity.kt` : Modifiez `getMainComponentName`.
+*   **Pourquoi ?** "C'est la configuration native qui fait le lien entre le nom affiché sur le téléphone et le composant React racine."
 
-### 4. Sur le Passage à l'échelle (Scalabilité)
-*   **Question** : "Si 1 million d'utilisateurs utilisent G4 en même temps, comment gérer ?"
-*   **Défense** : "Le choix de Supabase/PostgreSQL est stratégique. Nous avons défini des index SQL sur nos tables principales (likes, commentaires) et utilisé les politiques RLS (Row Level Security) pour que chaque utilisateur n'interroge que ses propres données, garantissant des requêtes ultra-rapides."
+### 2. Fonctionnalité "LIVE"
+*   **Le déclencheur** : `src/screens/FeedScreen.tsx` (cherchez `navigation.navigate('Live')` dans le header).
+*   **L'interface** : `src/screens/LiveScreen.tsx`.
+*   **L'explication** : "C'est une interface dédiée qui utilise `reanimated` pour les animations de cœurs en temps réel et une simulation de chat."
 
-### 5. Sur le renommage en G4
-*   **Question** : "Pourquoi G4 ?"
-*   **Défense** : "G4 est une identité forte, tournée vers la Génération 4. C'est plus qu'un clone, c'est une ré-imagination du contenu court avec une emphase sur la fluidité et le retour tactile (haptique) que les utilisateurs actuels exigent."
+### 3. Upload de Vidéo & "Auto-cut"
+*   **L'interface** : `src/screens/UploadScreen.tsx`.
+*   **La logique** : Fonction `handleUpload`.
+*   **L'explication** : "Nous simulons un traitement 'Auto-cut/Auto-tune' avec une barre de progression réelle. C'est ici que le fichier est envoyé vers le bucket Supabase Storage."
+
+### 4. La barre de navigation et le bouton "Plus"
+*   **Le router** : `src/navigation/RootNavigation.tsx` (cherchez `MainTabs`).
+*   **Le style du bouton** : Composant `PlusIconWrapper`.
+*   **L'explication** : "Nous avons une structure de TabNavigator qui vérifie dynamiquement si l'utilisateur est connecté avant de l'autoriser à poster une vidéo."
+
 
