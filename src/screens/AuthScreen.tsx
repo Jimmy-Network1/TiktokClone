@@ -66,11 +66,7 @@ const AuthScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
-<<<<<<< HEAD
         <ScrollView contentContainerStyle={styles.scrollContent} className="justify-center p-8">
-=======
-        <ScrollView contentContainerStyle={styles.scrollContent} className="p-8">
->>>>>>> origin
           {navigation.canGoBack() ? (
             <TouchableOpacity className="absolute left-6 top-2 z-10 p-2" onPress={() => navigation.goBack()}>
               <Text className="text-sm font-bold text-zinc-500">Annuler</Text>
