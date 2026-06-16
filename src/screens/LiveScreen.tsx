@@ -15,15 +15,26 @@ interface LiveMessage {
 
 const LiveScreen = () => {
   const { session } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { roomId, hostName } = route.params || { roomId: 'g4_official', hostName: 'G4 Official' };
+  const { roomId, hostName, sessionId } = route.params || { roomId: 'g4_official', hostName: 'G4 Official', sessionId: null };
   
   const [message, setMessage] = useState('');
   const [spectatorsCount, setSpectatorsCount] = useState(1);
   const [messages, setMessages] = useState<LiveMessage[]>([
     { id: '1', user: 'G4_Bot', text: `Bienvenue sur le LIVE de ${hostName} ! 🚀` }
   ]);
+  const [requestStatus, setRequestStatus] = useState<'idle' | 'pending' | 'accepted'>('idle');
+
+  const requestToJoin = async () => {
+    if (!sessionId || !session?.user) return;
+    
+    setRequestStatus('pending');
+    await supabase.from('live_guest_requests').insert({
+      session_id: sessionId,
+      guest_id: session.user.id
+    });
+  };
   
   const heartScale = useSharedValue(1);
   const flatListRef = useRef<FlatList>(null);
@@ -172,11 +183,19 @@ const LiveScreen = () => {
 
         {/* Floating Hearts Area (Simulation) */}
         <View className="absolute right-4 bottom-32">
-           <Animated.View style={heartStyle}>
-              <TouchableOpacity onPress={handleSendHeart}>
-                <Heart color="#FE2C55" size={44} fill="#FE2C55" />
-              </TouchableOpacity>
-           </Animated.View>
+         <Animated.View style={heartStyle}>
+            <TouchableOpacity onPress={handleSendHeart}>
+              <Heart color="#FE2C55" size={44} fill="#FE2C55" />
+            </TouchableOpacity>
+         </Animated.View>
+
+         <TouchableOpacity 
+           className={`mt-4 p-3 rounded-full ${requestStatus === 'pending' ? 'bg-zinc-600' : 'bg-white'}`}
+           onPress={requestToJoin}
+           disabled={requestStatus !== 'idle'}
+         >
+            <User color={requestStatus === 'pending' ? 'white' : 'black'} size={24} />
+         </TouchableOpacity>
         </View>
 
         {/* Footer */}

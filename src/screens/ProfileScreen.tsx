@@ -3,7 +3,7 @@ import { FlatList, Text, TouchableOpacity, View, Dimensions, Image } from 'react
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import AuthWall from '../components/AuthWall';
-import { Play, Bookmark, Heart, Settings } from 'lucide-react-native';
+import { Play, Bookmark, Heart, Settings, Folder } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProfileSkeleton } from '../components/Skeleton';
 import { useAuth } from '../hooks/useAuth';
@@ -241,6 +241,25 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
             <Heart color={activeTab === 'likes' ? 'white' : '#71717a'} size={20} />
          </TouchableOpacity>
       </View>
+
+      {/* Collections shortcut when on favorites tab */}
+      {activeTab === 'favorites' && (
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Collections')}
+          className="w-full px-5 py-4 flex-row items-center justify-between border-b border-white/5 bg-zinc-950/30"
+        >
+          <View className="flex-row items-center">
+             <View className="bg-[#FE2C55]/10 p-2 rounded-lg mr-3">
+                <Folder color="#FE2C55" size={18} />
+             </View>
+             <Text className="text-white font-bold text-sm">Mes Collections</Text>
+          </View>
+          <View className="flex-row items-center">
+             <Text className="text-zinc-500 text-xs mr-2">Gérer</Text>
+             <Text className="text-zinc-700 text-lg">→</Text>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 

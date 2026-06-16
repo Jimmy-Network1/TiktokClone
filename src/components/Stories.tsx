@@ -53,11 +53,22 @@ const Stories: React.FC = () => {
 
       if (storiesError) throw storiesError;
 
+      // Récupérer les lives actifs
+      const { data: activeLives } = await supabase
+        .from('live_sessions')
+        .select('id, host_id')
+        .eq('is_active', true);
+
+      const liveHostIds = new Set((activeLives || []).map(l => l.host_id));
+      const liveSessionMap = new Map((activeLives || []).map(l => [l.host_id, l.id]));
+
       // Regrouper par user_id
       const groupsMap = new Map<string, StoryCreator>();
       
       (dbStories || []).forEach((s: any) => {
         const userId = s.user_id;
+        // ... (keep rest of logic, but update story creator with isLive)
+        
         const profile = s.profiles;
         const storyItem: StoryItem = {
           id: s.id,
@@ -73,7 +84,7 @@ const Stories: React.FC = () => {
             id: userId,
             username: profile?.username || 'utilisateur',
             avatar_url: profile?.avatar_url || null,
-            isLive: false,
+            isLive: liveHostIds.has(userId),
             seen: false,
             stories: [storyItem]
           });
@@ -196,9 +207,11 @@ const Stories: React.FC = () => {
 
   const handlePressStory = (creator: StoryCreator) => {
     if (creator.isLive) {
+      const sessionId = liveSessionMap.get(creator.id);
       navigation.navigate('Live', { 
         roomId: `room_${creator.id}`, 
-        hostName: creator.username 
+        hostName: creator.username,
+        sessionId: sessionId 
       });
     } else {
       navigation.navigate('StoryView', { creator });

@@ -1,12 +1,17 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { ActivityIndicator, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, SectionList, Text, TextInput, TouchableOpacity, View, Dimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
+import { Search, TrendingUp, User, Hash, Play, X, ChevronRight } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 interface DiscoverProfile {
   id: string;
   username: string | null;
   full_name: string | null;
+  avatar_url?: string | null;
   bio: string | null;
 }
 
@@ -14,101 +19,69 @@ interface DiscoverVideo {
   id: string;
   caption: string | null;
   user_id: string;
+  thumbnail_url?: string | null;
   profiles: {
     username: string | null;
+    avatar_url?: string | null;
   } | null;
-}
-
-interface DiscoverHashtag {
-  id: string;
-  tag: string;
-  videoCount: number;
-}
-
-type DiscoverItem = DiscoverProfile | DiscoverVideo | DiscoverHashtag;
-
-interface DiscoverSection {
-  title: string;
-  data: DiscoverItem[];
-  type: 'profile' | 'video' | 'hashtag';
+  likes_count?: number;
 }
 
 const DiscoverScreen = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'creators' | 'videos'>('all');
+  
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
   const [trendingVideos, setTrendingVideos] = useState<DiscoverVideo[]>([]);
-  const [popularHashtags] = useState<DiscoverHashtag[]>([
-    { id: 'h1', tag: 'G4', videoCount: 124 },
-    { id: 'h2', tag: 'Vibes', videoCount: 89 },
-    { id: 'h3', tag: 'Animation', videoCount: 54 },
-    { id: 'h4', tag: 'Art', videoCount: 42 },
-    { id: 'h5', tag: 'Sunset', videoCount: 31 },
+  const [hashtags, setHashtags] = useState<any[]>([
+    { tag: 'G4NextGen', count: '1.2M' },
+    { tag: 'TikTokClone', count: '850K' },
+    { tag: 'Vibes2026', count: '420K' },
+    { tag: 'CodingLife', count: '120K' },
   ]);
 
-  const loadDiscoverData = useCallback(async (rawQuery: string) => {
+  const loadData = useCallback(async (searchQuery: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const search = rawQuery.trim();
-
+      const search = searchQuery.trim();
+      
       if (!search) {
-        // 1. Fetch Trending Videos via the new logic
-        const { data: trendingData, error: trendingError } = await supabase
+        // Mode Tendance (par défaut)
+        const { data: vids } = await supabase
           .from('videos')
-          .select(`
-            id,
-            caption,
-            user_id,
-            profiles (username),
-            likes (count)
-          `)
-          .order('created_at', { ascending: false }) // Fallback to recent for now, but counting likes
+          .select('*, profiles(username, avatar_url)')
+          .order('created_at', { ascending: false })
           .limit(10);
-
-        // 2. Fetch Top Creators
-        const { data: profileData } = await supabase
+        
+        const { data: profs } = await supabase
           .from('profiles')
-          .select('id, username, full_name, bio')
-          .limit(10);
+          .select('*')
+          .limit(5);
 
-        if (trendingError) throw trendingError;
-
-        setTrendingVideos(((trendingData || []) as any[]).map(item => ({
-          ...item,
-          profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
-        })));
-        setProfiles((profileData as DiscoverProfile[]) || []);
-        return;
-      }
-
-      // Search logic remains the same
-      const [{ data: profileData }, { data: videosData }] = await Promise.all([
-        supabase
+        setTrendingVideos(vids as any || []);
+        setProfiles(profs as any || []);
+      } else {
+        // Mode Recherche
+        const { data: profs } = await supabase
           .from('profiles')
-          .select('id, username, full_name, bio')
+          .select('*')
           .or(`username.ilike.%${search}%,full_name.ilike.%${search}%`)
-          .limit(20),
-        supabase
-          .from('videos')
-          .select(`
-            id,
-            caption,
-            user_id,
-            profiles (username)
-          `)
-          .ilike('caption', `%${search}%`)
-          .limit(20),
-      ]);
+          .limit(20);
 
-      setProfiles((profileData as DiscoverProfile[]) || []);
-      setTrendingVideos(((videosData || []) as any[]).map(item => ({
-        ...item,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
-      })));
-    } catch (error) {
-      console.error('Error loading discover data:', error);
+        const { data: vids } = await supabase
+          .from('videos')
+          .select('*, profiles(username, avatar_url)')
+          .ilike('caption', `%${search}%`)
+          .limit(20);
+
+        setProfiles(profs as any || []);
+        setTrendingVideos(vids as any || []);
+      }
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -117,136 +90,178 @@ const DiscoverScreen = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
-    }, 500);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    }, 400);
+    return () => clearTimeout(handler);
   }, [query]);
 
   useEffect(() => {
-    loadDiscoverData(debouncedQuery);
-  }, [debouncedQuery, loadDiscoverData]);
+    loadData(debouncedQuery);
+  }, [debouncedQuery, loadData]);
 
-  const sections: DiscoverSection[] = [
-    ...(!debouncedQuery ? [{ title: 'Hashtags populaires 🔥', data: popularHashtags, type: 'hashtag' as const }] : []),
-    { title: debouncedQuery ? 'Résultats : Créateurs' : 'Créateurs à la une', data: profiles, type: 'profile' },
-    { title: debouncedQuery ? 'Résultats : Vidéos' : 'Vidéos populaires', data: trendingVideos, type: 'video' },
-  ];
-
-  return (
-    <View className="flex-1 bg-black">
-      <View className="border-b border-white/10 px-5 pb-5 pt-14">
-        <Text className="text-3xl font-bold text-white">Découvrir</Text>
-        <Text className="mt-1 text-sm text-zinc-400">
-          Recherchez des créateurs et des vidéos à suivre.
-        </Text>
+  const renderSearchBar = () => (
+    <View className="px-5 pb-4 pt-4 bg-black">
+      <View className="flex-row items-center bg-zinc-900 rounded-2xl px-4 py-3 border border-white/5">
+        <Search color="#71717a" size={20} />
         <TextInput
-          className="mt-4 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-white"
-          placeholder="Rechercher un profil ou un mot clé..."
+          className="flex-1 ml-3 text-white text-base"
+          placeholder="Rechercher sur G4..."
           placeholderTextColor="#71717a"
           value={query}
           onChangeText={setQuery}
+          autoCapitalize="none"
         />
+        {query.length > 0 && (
+          <TouchableOpacity onPress={() => setQuery('')}>
+             <X color="#71717a" size={18} />
+          </TouchableOpacity>
+        )}
       </View>
+    </View>
+  );
 
-      {loading && profiles.length === 0 && trendingVideos.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#fff" size="large" />
-        </View>
-      ) : (
-        <SectionList<DiscoverItem, DiscoverSection>
-          sections={sections}
-          keyExtractor={(item, index) => item.id + index}
-          renderSectionHeader={({ section: { title, data } }) => (
-            <View className="bg-black px-5 py-3">
-              <Text className="text-xl font-bold text-white">{title}</Text>
-              {data.length === 0 && (
-                <Text className="mt-2 text-sm text-zinc-500">Aucun résultat trouvé.</Text>
-              )}
+  const renderTabs = () => (
+    <View className="flex-row px-5 border-b border-white/5 bg-black">
+       {['all', 'creators', 'videos'].map((tab) => (
+         <TouchableOpacity 
+           key={tab}
+           onPress={() => setActiveTab(tab as any)}
+           className={`mr-8 pb-3 border-b-2 ${activeTab === tab ? 'border-[#FE2C55]' : 'border-transparent'}`}
+         >
+            <Text className={`font-bold ${activeTab === tab ? 'text-white' : 'text-zinc-500'}`}>
+               {tab === 'all' ? 'Top' : tab === 'creators' ? 'Utilisateurs' : 'Vidéos'}
+            </Text>
+         </TouchableOpacity>
+       ))}
+    </View>
+  );
+
+  const renderHashtags = () => (
+    <View className="mt-6 px-5">
+       <View className="flex-row items-center mb-4">
+          <TrendingUp color="#FE2C55" size={18} />
+          <Text className="text-white font-bold text-lg ml-2">Hashtags du moment</Text>
+       </View>
+       <View className="flex-row flex-wrap">
+          {hashtags.map((h, i) => (
+            <TouchableOpacity 
+              key={i}
+              onPress={() => setQuery(h.tag)}
+              className="bg-zinc-900 px-4 py-2 rounded-full mr-2 mb-3 border border-white/5"
+            >
+               <Text className="text-white font-medium text-sm">#{h.tag}</Text>
+               <Text className="text-zinc-600 text-[9px] font-bold uppercase">{h.count} vues</Text>
+            </TouchableOpacity>
+          ))}
+       </View>
+    </View>
+  );
+
+  const renderCreatorItem = ({ item }: { item: DiscoverProfile }) => (
+    <TouchableOpacity 
+      className="flex-row items-center justify-between py-4 border-b border-white/5"
+      onPress={() => navigation.navigate('PublicProfile', { userId: item.id })}
+    >
+      <View className="flex-row items-center flex-1">
+         <View className="h-12 w-12 rounded-full bg-zinc-800 items-center justify-center overflow-hidden border border-white/10">
+            {item.avatar_url ? (
+              <Image source={{ uri: item.avatar_url }} className="h-full w-full" />
+            ) : (
+              <Text className="text-white font-bold">{(item.username || 'U').charAt(0).toUpperCase()}</Text>
+            )}
+         </View>
+         <View className="ml-4">
+            <Text className="text-white font-bold text-base">@{item.username}</Text>
+            <Text className="text-zinc-500 text-xs">{item.full_name || 'G4 Creator'}</Text>
+         </View>
+      </View>
+      <ChevronRight color="#3f3f46" size={20} />
+    </TouchableOpacity>
+  );
+
+  const renderVideoItem = ({ item }: { item: DiscoverVideo }) => (
+    <TouchableOpacity 
+      style={{ width: (width - 50) / 2 }}
+      className="mb-4 mr-2"
+      onPress={() => navigation.navigate('HashtagFeed', { initialVideoId: item.id, mode: 'for_you' })}
+    >
+       <View className="h-60 bg-zinc-900 rounded-2xl overflow-hidden relative border border-white/5">
+          {item.thumbnail_url ? (
+            <Image source={{ uri: item.thumbnail_url }} className="h-full w-full" />
+          ) : (
+            <View className="flex-1 items-center justify-center">
+               <Play color="rgba(255,255,255,0.1)" size={40} />
             </View>
           )}
-          renderItem={({ item, section }) => {
-            if (section.type === 'hashtag') {
-              const hashtagItem = item as DiscoverHashtag;
-              return (
-                <TouchableOpacity
-                  className="mx-5 mb-3 flex-row items-center rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
-                  onPress={() => navigation.navigate('Hashtag', { hashtag: hashtagItem.tag })}
-                >
-                  <View className="h-10 w-10 rounded-full bg-zinc-900 items-center justify-center mr-4 border border-white/10">
-                     <Text className="text-[#2AF5FF] font-bold text-lg">#</Text>
+          <View className="absolute bottom-2 left-2 flex-row items-center bg-black/40 px-2 py-1 rounded-md">
+             <User color="white" size={10} />
+             <Text className="text-white text-[10px] ml-1 font-bold">@{item.profiles?.username}</Text>
+          </View>
+       </View>
+       <Text className="text-white text-xs mt-2 font-medium" numberOfLines={2}>{item.caption || 'Pas de description'}</Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-black" edges={['top']}>
+      {renderSearchBar()}
+      
+      {debouncedQuery.length > 0 && renderTabs()}
+
+      <FlatList
+        data={[]}
+        renderItem={null}
+        ListHeaderComponent={
+          <View className="pb-20">
+            {/* 1. HASHTAGS (Only in "All" or when no search) */}
+            {(activeTab === 'all' || !debouncedQuery) && renderHashtags()}
+
+            {/* 2. CREATORS SECTION */}
+            {(activeTab === 'all' || activeTab === 'creators') && (
+              <View className="mt-8 px-5">
+                <View className="flex-row items-center mb-4">
+                  <User color="#2AF5FF" size={18} />
+                  <Text className="text-white font-bold text-lg ml-2">Créateurs</Text>
+                </View>
+                {loading ? (
+                   <ActivityIndicator color="#FE2C55" className="my-4" />
+                ) : (
+                  profiles.slice(0, activeTab === 'all' ? 3 : 20).map((p) => (
+                    <View key={p.id}>{renderCreatorItem({ item: p })}</View>
+                  ))
+                )}
+                {profiles.length === 0 && !loading && (
+                   <Text className="text-zinc-600 text-sm italic">Aucun créateur trouvé.</Text>
+                )}
+              </View>
+            )}
+
+            {/* 3. VIDEOS SECTION */}
+            {(activeTab === 'all' || activeTab === 'videos') && (
+              <View className="mt-8 px-5">
+                <View className="flex-row items-center mb-4">
+                  <Hash color="#FE2C55" size={18} />
+                  <Text className="text-white font-bold text-lg ml-2">Vidéos populaires</Text>
+                </View>
+                {loading ? (
+                   <ActivityIndicator color="#FE2C55" className="my-4" />
+                ) : (
+                  <View className="flex-row flex-wrap">
+                    {trendingVideos.map((v) => (
+                       <View key={v.id}>{renderVideoItem({ item: v })}</View>
+                    ))}
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-bold text-white">
-                      #{hashtagItem.tag}
-                    </Text>
-                    <Text className="text-xs text-zinc-500">
-                      {hashtagItem.videoCount}k vues
-                    </Text>
-                  </View>
-                  <View className="bg-zinc-800 px-3 py-1 rounded-full">
-                     <Text className="text-white text-[10px] font-bold">Explorer</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            } else if (section.type === 'profile') {
-              const profile = item as DiscoverProfile;
-              return (
-                <TouchableOpacity
-                  className="mx-5 mb-3 flex-row items-center rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4"
-                  onPress={() => navigation.navigate('PublicProfile', { userId: profile.id })}
-                >
-                  <View className="h-12 w-12 rounded-full bg-zinc-800 items-center justify-center mr-4 border border-white/10">
-                    <Text className="text-white font-bold">
-                       {(profile.username || 'U').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-semibold text-white">
-                      @{profile.username || 'utilisateur'}
-                    </Text>
-                    <Text className="text-xs text-zinc-500" numberOfLines={1}>
-                      {profile.full_name || 'Profil public'}
-                    </Text>
-                  </View>
-                  <View className="bg-zinc-800 px-3 py-1 rounded-full">
-                     <Text className="text-white text-[10px] font-bold">Voir</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            } else {
-              // Note: For videos, we keep the original list for now but with better style.
-              // A real grid would require changing the SectionList structure or using a custom layout.
-              const video = item as DiscoverVideo;
-              return (
-                <TouchableOpacity
-                  className="mx-5 mb-3 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950"
-                  onPress={() => navigation.navigate('PublicProfile', { userId: video.user_id })}
-                >
-                  <View className="flex-row items-center p-4">
-                    <View className="h-16 w-12 rounded-lg bg-zinc-900 items-center justify-center mr-4">
-                        <Text className="text-zinc-700 text-xs">VID</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-semibold text-[#FE2C55]">
-                        @{video.profiles?.username || 'créateur'}
-                      </Text>
-                      <Text className="mt-1 text-base text-white" numberOfLines={2}>
-                        {video.caption || 'Sans légende'}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            }
-          }}
-          ListFooterComponent={<View className="h-20" />}
-          refreshing={loading}
-          onRefresh={() => loadDiscoverData(debouncedQuery)}
-        />
-      )}
-    </View>
+                )}
+                {trendingVideos.length === 0 && !loading && (
+                   <Text className="text-zinc-600 text-sm italic">Aucune vidéo trouvée.</Text>
+                )}
+              </View>
+            )}
+          </View>
+        }
+        refreshing={loading}
+        onRefresh={() => loadData(debouncedQuery)}
+      />
+    </SafeAreaView>
   );
 };
 

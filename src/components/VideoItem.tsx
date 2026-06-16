@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Vibration, Image } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Vibration, Image, Modal, FlatList } from 'react-native';
 import { Video } from 'react-native-video';
 import { Heart, MessageCircle, Share2, Music2, Play, Pause, EyeOff, Bookmark } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -101,6 +101,8 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
   // Custom states for revolutionary features
   const [tapHearts, setTapHearts] = useState<TapHeart[]>([]);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [showCollections, setShowCollections] = useState(false);
+  const [userCollections, setUserCollections] = useState<any[]>([]);
   
   const lastTap = useRef<number>(0);
   const videoPlayerRef = useRef<any>(null);
@@ -271,21 +273,23 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
     }
   };
 
-  const handleBookmark = async () => {
+  const handleBookmark = async (collectionId?: string) => {
     if (!session?.user) {
       navigation.navigate('Auth');
       return;
     }
 
     const currentUserId = session.user.id;
-    const isAddingBookmark = !bookmarkedByCurrentUser;
+    const isAddingBookmark = !bookmarkedByCurrentUser || collectionId !== undefined;
     const previousBookmarks = bookmarks;
 
+    // Optimistic update
     const nextBookmarks = isAddingBookmark
       ? [...bookmarks.filter(b => b.user_id !== currentUserId), { user_id: currentUserId }]
       : bookmarks.filter(item => item.user_id !== currentUserId);
 
     setBookmarks(nextBookmarks);
+    setShowCollections(false);
 
     if (video.id.startsWith('mock-')) {
       try {
@@ -298,7 +302,11 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
       if (!isAddingBookmark) {
         await supabase.from('bookmarks').delete().eq('video_id', video.id).eq('user_id', currentUserId);
       } else {
-        await supabase.from('bookmarks').upsert({ video_id: video.id, user_id: currentUserId }, { onConflict: 'video_id,user_id' });
+        await supabase.from('bookmarks').upsert({ 
+          video_id: video.id, 
+          user_id: currentUserId,
+          collection_id: collectionId || null
+        }, { onConflict: 'video_id,user_id' });
       }
       try {
         Vibration.vibrate(10);
@@ -309,14 +317,19 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
     }
   };
 
-  const handleShare = async () => {
+  const openCollectionPicker = async () => {
+    if (!session?.user) {
+      navigation.navigate('Auth');
+      return;
+    }
+    
     try {
-      const shareUrl = `https://g4.app/v/${video.id}`;
-      await Share.share({
-        message: `Regarde cette vidéo de @${video.user} sur G4 ! \n\n${shareUrl}`,
-      });
-    } catch (error: any) {
-      console.error('Share error:', error);
+      const { data } = await supabase.from('collections').select('*');
+      setUserCollections(data || []);
+      setShowCollections(true);
+      try { Vibration.vibrate(20); } catch (e) {}
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -456,7 +469,11 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
           <Text className="text-white text-xs mt-1 font-bold">{formatCount(video.comments.length)}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="items-center" onPress={handleBookmark}>
+        <TouchableOpacity 
+          className="items-center" 
+          onPress={() => handleBookmark()}
+          onLongPress={openCollectionPicker}
+        >
           <Bookmark color="white" size={35} fill={bookmarkedByCurrentUser ? '#FFB800' : 'rgba(255,255,255,0.9)'} />
           <Text className="text-white text-xs mt-1 font-bold">Favoris</Text>
         </TouchableOpacity>
@@ -468,6 +485,55 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
           <Text className="text-white text-xs mt-1 font-bold shadow-sm">Partager</Text>
         </TouchableOpacity>
       </Animated.View>
+
+      {/* Collection Picker Modal */}
+      <Modal
+        visible={showCollections}
+        transparent
+        animationType="slide"
+      >
+        <Pressable 
+          style={StyleSheet.absoluteFill} 
+          className="bg-black/60 justify-end"
+          onPress={() => setShowCollections(false)}
+        >
+          <View className="bg-zinc-900 rounded-t-3xl p-6 min-h-[400px]">
+             <View className="w-10 h-1 bg-zinc-800 rounded-full self-center mb-6" />
+             <Text className="text-white text-xl font-bold mb-6">Ajouter à une collection</Text>
+             
+             {userCollections.length === 0 ? (
+               <View className="flex-1 items-center justify-center">
+                  <Text className="text-zinc-500 text-center mb-6">Vous n'avez pas encore de collections.</Text>
+                  <TouchableOpacity 
+                    className="bg-[#FE2C55] px-8 py-3 rounded-full"
+                    onPress={() => {
+                      setShowCollections(false);
+                      navigation.navigate('Collections');
+                    }}
+                  >
+                     <Text className="text-white font-bold">Créer une collection</Text>
+                  </TouchableOpacity>
+               </View>
+             ) : (
+               <FlatList
+                 data={userCollections}
+                 keyExtractor={item => item.id}
+                 renderItem={({ item }) => (
+                   <TouchableOpacity 
+                     className="flex-row items-center py-4 border-b border-white/5"
+                     onPress={() => handleBookmark(item.id)}
+                   >
+                      <View className="bg-zinc-800 p-3 rounded-xl mr-4">
+                         <Folder color="white" size={20} />
+                      </View>
+                      <Text className="text-white text-lg font-medium">{item.name}</Text>
+                   </TouchableOpacity>
+                 )}
+               />
+             )}
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Description & Music overlay */}
       <Animated.View 
