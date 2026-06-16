@@ -152,7 +152,7 @@ export const useVideos = (
           data = rpcRows;
         }
       } else {
-        // Classic query for Guest, Following, or fallback
+        // Classic query with inner join
         let query = supabase
           .from('videos')
           .select(`
@@ -163,7 +163,7 @@ export const useVideos = (
             user_id,
             cut_start,
             cut_end,
-            profiles (id, username, full_name, avatar_url, bio),
+            profiles!videos_user_id_fkey (id, username, full_name, avatar_url, bio),
             likes (user_id),
             comments (id),
             bookmarks (user_id)
