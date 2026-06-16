@@ -179,22 +179,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
         viewabilityConfig={viewabilityConfig}
         renderItem={({ item }) => (
           <VideoItem 
-            video={{
-              id: item.id,
-              url: item.video_url || '',
-              thumbnailUrl: item.thumbnail_url || '',
-              userId: item.user_id || 'system',
-              user: item.profiles?.username || 'G4_User',
-              fullName: item.profiles?.full_name || 'G4 User',
-              avatarUrl: item.profiles?.avatar_url || null,
-              description: item.caption || '',
-              likes: item.likes || [],
-              comments: item.comments || [],
-              bookmarks: item.bookmarks || [],
-              shares: '0',
-              cutStart: item.cut_start,
-              cutEnd: item.cut_end,
-            }} 
+            video={item} 
             isActive={item.id === activeVideoId}
           />
         )}

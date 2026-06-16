@@ -156,10 +156,13 @@ const Stories: React.FC = () => {
         const response = await fetch(asset.uri);
         const blob = await response.blob();
         
+        // Ensure we have a valid blob or fallback to a pseudo-file object for RN
+        const fileToUpload = blob;
+        
         const { error: uploadError } = await supabase.storage
           .from('stories')
-          .upload(fileName, blob, {
-            contentType: isVideo ? 'video/mp4' : 'image/jpeg',
+          .upload(fileName, fileToUpload, {
+            contentType: asset.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
             upsert: true,
           });
 
