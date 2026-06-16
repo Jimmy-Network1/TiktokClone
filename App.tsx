@@ -79,6 +79,14 @@ function App(): React.JSX.Element {
           <NavigationContainer>
             <RootNavigation />
           </NavigationContainer>
+          {error && (
+            <View className="absolute top-14 left-0 right-0 items-center z-[100]">
+               <View className="bg-red-600 px-4 py-2 rounded-full shadow-lg flex-row items-center">
+                  <View className="w-2 h-2 rounded-full bg-white mr-2 animate-pulse" />
+                  <Text className="text-white font-bold text-xs">Mode Hors-ligne — Contenu limité</Text>
+               </View>
+            </View>
+          )}
         </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

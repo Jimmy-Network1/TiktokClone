@@ -351,6 +351,12 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
           rate={playbackRate}
           onLoad={handleVideoLoad}
           onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
+          bufferConfig={{
+            minBufferMs: 2500,
+            maxBufferMs: 5000,
+            bufferForPlaybackMs: 1500,
+            bufferForPlaybackAfterRebufferMs: 2000
+          }}
           onProgress={({ currentTime, playableDuration }) => {
             if (playableDuration > 0) {
               const start = video.cutStart || 0;

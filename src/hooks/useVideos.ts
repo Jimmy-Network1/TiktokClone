@@ -138,55 +138,18 @@ export const useVideos = (
 
       // 2. Fetch using personalized algorithm if authenticated and in For You mode
       if (mode !== 'hashtag' && mode === 'for_you' && sessionUserId && !isGuest) {
-        // We call the recommended videos RPC function (returns SETOF videos, max 20)
+        // We call the smart feed RPC function (returns SETOF videos)
         const { data: rpcRows, error: rpcError } = await supabase
-          .rpc('get_recommended_videos', { user_uuid: sessionUserId });
+          .rpc('get_smart_feed', { 
+            user_uuid: sessionUserId,
+            limit_val: pageSize,
+            offset_val: currentOffset
+          });
         
         if (rpcError) {
           fetchError = rpcError;
         } else {
-          const recommendedIds = (rpcRows || []).map((r: any) => r.id);
-          if (recommendedIds.length === 0) {
-            data = [];
-          } else {
-            // Paginate manually on the returned IDs
-            const paginatedIds = recommendedIds.slice(currentOffset, currentOffset + pageSize);
-            if (paginatedIds.length === 0) {
-              data = [];
-            } else {
-              // Fetch full details with relationships for the paginated IDs
-              const { data: fullData, error: fullError } = await supabase
-                .from('videos')
-                .select(`
-                  id,
-                  video_url,
-                  thumbnail_url,
-                  caption,
-                  user_id,
-                  cut_start,
-                  cut_end,
-                  profiles (id, username, full_name, avatar_url, bio),
-                  likes (user_id),
-                  comments (id),
-                  bookmarks (user_id)
-                `)
-                .in('id', paginatedIds);
-              
-              if (fullError) {
-                fetchError = fullError;
-              } else {
-                // Preserve the order returned by the recommendation algorithm
-                const idToIndexMap = new Map<string, number>(
-                  paginatedIds.map((id: string, index: number): [string, number] => [id, index])
-                );
-                data = (fullData || []).sort((a: any, b: any) => {
-                  const indexA = idToIndexMap.get(a.id) ?? 999;
-                  const indexB = idToIndexMap.get(b.id) ?? 999;
-                  return indexA - indexB;
-                });
-              }
-            }
-          }
+          data = rpcRows;
         }
       } else {
         // Classic query for Guest, Following, or fallback
