@@ -3,9 +3,9 @@ import { FlatList, Text, TouchableOpacity, View, Dimensions, Image } from 'react
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import AuthWall from '../components/AuthWall';
-import { Play, Bookmark, Heart } from 'lucide-react-native';
+import { Play, Bookmark, Heart, Settings } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { ProfileSkeleton } from '../components/Skeleton';
 import { useAuth } from '../hooks/useAuth';
 
 const { width } = Dimensions.get('window');
@@ -142,6 +142,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
     loadProfile();
   }, [loadProfile]);
 
+  if (loading && !profile) {
+    return <ProfileSkeleton />;
+  }
+
   if (!session) {
     return (
       <AuthWall
@@ -155,7 +159,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
   const totalLikes = videos.reduce((acc, curr) => acc + (curr.likes?.length || 0), 0);
 
   const renderHeader = () => (
-    <View className="px-5 pb-6 pt-10 items-center">
+    <View className="px-5 pb-6 pt-6 items-center">
+      <View className="absolute right-5 top-6">
+         <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+            <Settings color="white" size={24} />
+         </TouchableOpacity>
+      </View>
+
       <View className="h-24 w-24 rounded-full border-2 border-[#FE2C55] overflow-hidden bg-zinc-900 items-center justify-center">
         {profile?.avatar_url ? (
           <Image source={{ uri: profile.avatar_url }} className="h-full w-full" />
@@ -260,7 +270,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
           <TouchableOpacity 
             style={{ width: COLUMN_WIDTH, height: COLUMN_WIDTH * 1.4 }}
             className="border-[0.5px] border-black bg-zinc-900 overflow-hidden relative"
-            onPress={() => navigation.navigate('Home', { initialVideoId: item.id })}
+            onPress={() => navigation.navigate('HashtagFeed', { initialVideoId: item.id, mode: 'for_you' })}
           >
             {/* Thumbnail placeholder if no real thumbnail */}
             <View className="flex-1 items-center justify-center">

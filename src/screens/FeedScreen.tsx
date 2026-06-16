@@ -16,6 +16,7 @@ import { FeedMode, useVideos } from '../hooks/useVideos';
 import { useAuth } from '../hooks/useAuth';
 import { Tv, ChevronLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { VideoSkeleton } from '../components/Skeleton';
 
 const { height } = Dimensions.get('window');
 
@@ -29,19 +30,19 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   const isGuest = !session?.user;
   const initialMode = route?.params?.mode || 'for_you';
   const initialHashtag = route?.params?.hashtag;
+  const initialVideoId = route?.params?.initialVideoId;
   const [mode, setMode] = useState<FeedMode>(initialMode);
   const { videos, loading, loadingMore, hasMore, error, refresh, loadMore } = useVideos(
     isGuest, 
     mode, 
     session?.user?.id,
     5,
-    mode === 'hashtag' ? initialHashtag : undefined
+    mode === 'hashtag' ? initialHashtag : undefined,
+    initialVideoId
   );
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
-  
-  const initialVideoId = route?.params?.initialVideoId;
 
   useEffect(() => {
     if (initialVideoId && videos.length > 0) {
@@ -75,11 +76,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   };
 
   if (loading && !refreshing) {
-    return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#FE2C55" />
-      </View>
-    );
+    return <VideoSkeleton />;
   }
 
   if (error && videos.length === 0) {
@@ -107,7 +104,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
       {/* Header with Logo and Tabs */}
       <View className="absolute left-0 right-0 top-0 z-10 pt-12 pb-2 bg-black/20">
         <View className="flex-row justify-between items-center px-4 mb-2">
-          {mode === 'hashtag' ? (
+          {navigation.canGoBack() ? (
             <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 bg-black/40 rounded-full">
               <ChevronLeft color="white" size={24} />
             </TouchableOpacity>
@@ -123,6 +120,8 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
           <View className="flex-row items-center">
             {mode === 'hashtag' ? (
               <Text className="text-white font-bold text-lg">#{initialHashtag}</Text>
+            ) : initialVideoId ? (
+              <Text className="text-white font-bold text-lg">Vidéo</Text>
             ) : (
               <>
                 {!isGuest && (
@@ -150,7 +149,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
         </View>
         
         {/* Stories Horizontal Scroll */}
-        {mode !== 'hashtag' && <Stories />}
+        {mode !== 'hashtag' && !initialVideoId && <Stories />}
       </View>
 
       <FlatList
@@ -180,22 +179,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
         viewabilityConfig={viewabilityConfig}
         renderItem={({ item }) => (
           <VideoItem 
-            video={{
-              id: item.id,
-              url: item.video_url || '',
-              thumbnailUrl: item.thumbnail_url || '',
-              userId: item.user_id || 'system',
-              user: item.profiles?.username || 'G4_User',
-              fullName: item.profiles?.full_name || 'G4 User',
-              avatarUrl: item.profiles?.avatar_url || null,
-              description: item.caption || '',
-              likes: item.likes || [],
-              comments: item.comments || [],
-              bookmarks: item.bookmarks || [],
-              shares: '0',
-              cutStart: item.cut_start,
-              cutEnd: item.cut_end,
-            }} 
+            video={item} 
             isActive={item.id === activeVideoId}
           />
         )}

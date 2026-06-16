@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 
 const { height, width } = Dimensions.get('window');
 
@@ -83,8 +84,11 @@ const FloatingHeart: React.FC<{ heart: TapHeart; onFinish: () => void }> = ({ he
   );
 };
 
+const viewedVideosThisSession = new Set<string>();
+
 const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
   const { session } = useAuth();
+  const { sendNotification } = useNotifications();
   const isFocused = useIsFocused();
   const navigation = useNavigation<any>();
   const [likes, setLikes] = useState(video.likes);
@@ -118,13 +122,19 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
 
   useEffect(() => {
     if (isActive) {
+      const isMockVideo = video.id.startsWith('mock-');
+      if (isMockVideo) return;
+      if (viewedVideosThisSession.has(video.id)) return;
+
       const timer = setTimeout(async () => {
         try {
+          viewedVideosThisSession.add(video.id);
           await supabase.from('video_views').insert({
             video_id: video.id,
             user_id: session?.user?.id || null
           });
         } catch (error) {
+          viewedVideosThisSession.delete(video.id);
           console.error('Error recording view:', error);
         }
       }, 2000);
@@ -238,11 +248,23 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
 
     setLikes(nextLikes);
 
+    if (video.id.startsWith('mock-')) {
+      return;
+    }
+
     try {
       if (!isAddingLike) {
         await supabase.from('likes').delete().eq('video_id', video.id).eq('user_id', currentUserId);
       } else {
         await supabase.from('likes').upsert({ video_id: video.id, user_id: currentUserId }, { onConflict: 'video_id,user_id' });
+        
+        // Notify video owner
+        sendNotification(video.userId, {
+          type: 'like',
+          title: 'Nouveau J\'aime !',
+          message: `${session.user.email?.split('@')[0]} a aimé votre vidéo.`,
+          data: { videoId: video.id }
+        });
       }
     } catch (error) {
       setLikes(previousLikes);
@@ -264,6 +286,13 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
       : bookmarks.filter(item => item.user_id !== currentUserId);
 
     setBookmarks(nextBookmarks);
+
+    if (video.id.startsWith('mock-')) {
+      try {
+        Vibration.vibrate(10);
+      } catch (e) {}
+      return;
+    }
 
     try {
       if (!isAddingBookmark) {
@@ -332,6 +361,12 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
           rate={playbackRate}
           onLoad={handleVideoLoad}
           onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
+          bufferConfig={{
+            minBufferMs: 2500,
+            maxBufferMs: 5000,
+            bufferForPlaybackMs: 1500,
+            bufferForPlaybackAfterRebufferMs: 2000
+          }}
           onProgress={({ currentTime, playableDuration }) => {
             if (playableDuration > 0) {
               const start = video.cutStart || 0;
@@ -496,6 +531,12 @@ const styles = StyleSheet.create({
   }
 });
 
-export default React.memo(VideoItem, (prev, next) => {
-  return prev.video.id === next.video.id;
+export default React.memo(VideoItem, (prevProps, nextProps) => {
+  return (
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.video.id === nextProps.video.id &&
+    prevProps.video.likes.length === nextProps.video.likes.length &&
+    prevProps.video.comments.length === nextProps.video.comments.length &&
+    prevProps.video.bookmarks?.length === nextProps.video.bookmarks?.length
+  );
 });

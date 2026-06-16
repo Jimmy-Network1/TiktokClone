@@ -60,7 +60,14 @@ const MOCK_VIDEOS: Video[] = [
   }
 ];
 
-export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUserId?: string, pageSize = 5, hashtag?: string) => {
+export const useVideos = (
+  isGuest = false, 
+  mode: FeedMode = 'for_you', 
+  sessionUserId?: string, 
+  pageSize = 5, 
+  hashtag?: string,
+  initialVideoId?: string
+) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -131,26 +138,19 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
 
       // 2. Fetch using personalized algorithm if authenticated and in For You mode
       if (mode !== 'hashtag' && mode === 'for_you' && sessionUserId && !isGuest) {
-        // We call the recommended videos RPC function
-        const { data: recommendedData, error: rpcError } = await supabase
-          .rpc('get_recommended_videos', { user_uuid: sessionUserId })
-          .select(`
-            id,
-            video_url,
-            thumbnail_url,
-            caption,
-            user_id,
-            cut_start,
-            cut_end,
-            profiles (id, username, full_name, avatar_url, bio),
-            likes (user_id),
-            comments (id),
-            bookmarks (user_id)
-          `)
-          .range(currentOffset, currentOffset + pageSize - 1);
+        // We call the smart feed RPC function (returns SETOF videos)
+        const { data: rpcRows, error: rpcError } = await supabase
+          .rpc('get_smart_feed', { 
+            user_uuid: sessionUserId,
+            limit_val: pageSize,
+            offset_val: currentOffset
+          });
         
-        data = recommendedData as any;
-        fetchError = rpcError;
+        if (rpcError) {
+          fetchError = rpcError;
+        } else {
+          data = rpcRows;
+        }
       } else {
         // Classic query for Guest, Following, or fallback
         let query = supabase
@@ -184,20 +184,78 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
 
       const normalizedVideos = (data || []).map(item => {
         try {
+          const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
           return {
-            ...item,
-            profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+            id: item.id,
+            url: item.video_url || '',
+            thumbnailUrl: item.thumbnail_url || '',
+            userId: item.user_id || 'system',
+            user: profile?.username || 'G4_User',
+            fullName: profile?.full_name || 'G4 User',
+            avatarUrl: profile?.avatar_url || null,
+            description: item.caption || '',
             likes: item.likes || [],
             comments: item.comments || [],
             bookmarks: item.bookmarks || [],
-            cut_start: item.cut_start,
-            cut_end: item.cut_end,
+            shares: '0',
+            cutStart: item.cut_start,
+            cutEnd: item.cut_end,
           };
         } catch (e) {
           console.error('Normalization error for item:', item.id, e);
           return null;
         }
-      }).filter(v => v !== null) as Video[];
+      }).filter(v => v !== null) as any[];
+
+      // Ensure initial video is included at the top if provided and not already present
+      if (initialVideoId && currentOffset === 0) {
+        const hasInitialVideo = (normalizedVideos as any[]).some(v => v.id === initialVideoId);
+        if (!hasInitialVideo) {
+          try {
+            const { data: specificVideo, error: specificError } = await supabase
+              .from('videos')
+              .select(`
+                id,
+                video_url,
+                thumbnail_url,
+                caption,
+                user_id,
+                cut_start,
+                cut_end,
+                profiles (id, username, full_name, avatar_url, bio),
+                likes (user_id),
+                comments (id),
+                bookmarks (user_id)
+              `)
+              .eq('id', initialVideoId)
+              .single();
+
+            if (!specificError && specificVideo) {
+              const profile = Array.isArray(specificVideo.profiles) ? specificVideo.profiles[0] : specificVideo.profiles;
+              const normalizedSpecific = {
+                id: specificVideo.id,
+                url: specificVideo.video_url || '',
+                thumbnailUrl: specificVideo.thumbnail_url || '',
+                userId: specificVideo.user_id || 'system',
+                user: profile?.username || 'G4_User',
+                fullName: profile?.full_name || 'G4 User',
+                avatarUrl: profile?.avatar_url || null,
+                description: specificVideo.caption || '',
+                likes: specificVideo.likes || [],
+                comments: specificVideo.comments || [],
+                bookmarks: specificVideo.bookmarks || [],
+                shares: '0',
+                cutStart: specificVideo.cut_start,
+                cutEnd: specificVideo.cut_end,
+              };
+              
+              normalizedVideos.unshift(normalizedSpecific);
+            }
+          } catch (e) {
+            console.error('Error fetching initial video:', e);
+          }
+        }
+      }
 
       // Guest filter
       let finalVideos = normalizedVideos;
@@ -237,11 +295,11 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [isGuest, mode, sessionUserId, offset, pageSize, hashtag]);
+  }, [isGuest, mode, sessionUserId, offset, pageSize, hashtag, initialVideoId]);
 
   useEffect(() => {
     fetchVideos(true);
-  }, [mode, sessionUserId, hashtag]);
+  }, [mode, sessionUserId, hashtag, initialVideoId]);
 
   const loadMore = useCallback(() => {
     if (!loading && !loadingMore && hasMore) {

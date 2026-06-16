@@ -16,6 +16,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { Send, ChevronDown, Heart } from 'lucide-react-native';
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface CommentItem {
   id: string;
@@ -37,6 +38,7 @@ interface CommentsRouteParams {
 
 const CommentsScreen = () => {
   const { session } = useAuth();
+  const { sendNotification } = useNotifications();
   const navigation = useNavigation<any>();
   const route = useRoute();
   const { videoId } = route.params as CommentsRouteParams;
@@ -82,8 +84,9 @@ const CommentsScreen = () => {
 
       rawComments.forEach(comment => {
         if (comment.parent_id && commentMap[comment.parent_id]) {
-          commentMap[comment.parent_id].replies = commentMap[comment.parent_id].replies || [];
-          commentMap[comment.parent_id].replies.push(comment);
+          const parent = commentMap[comment.parent_id];
+          parent.replies = parent.replies || [];
+          parent.replies.push(comment);
         } else {
           rootComments.push(comment);
         }
@@ -322,6 +325,36 @@ const CommentsScreen = () => {
         .single();
 
       if (insertError) throw insertError;
+
+      // Notify video owner
+      try {
+        const { data: videoData } = await supabase
+          .from('videos')
+          .select('user_id')
+          .eq('id', videoId)
+          .single();
+        
+        if (videoData) {
+          sendNotification(videoData.user_id, {
+            type: 'comment',
+            title: 'Nouveau commentaire !',
+            message: `${profileInfo.username} a commenté votre vidéo.`,
+            data: { videoId }
+          });
+        }
+
+        // Also notify parent comment owner if it's a reply
+        if (replyingTo && replyingTo.user_id !== videoData?.user_id) {
+          sendNotification(replyingTo.user_id, {
+            type: 'comment',
+            title: 'Nouvelle réponse !',
+            message: `${profileInfo.username} a répondu à votre commentaire.`,
+            data: { videoId, commentId: data.id }
+          });
+        }
+      } catch (notifErr) {
+        console.warn('Could not send comment notification:', notifErr);
+      }
 
       // Replace tempId with actual DB comment
       if (parentId) {
