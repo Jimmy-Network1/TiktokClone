@@ -225,37 +225,58 @@ const Stories: React.FC = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-4">
         {/* Own story button */}
         {session?.user && (
-          <View className="mr-4 items-center">
-            <TouchableOpacity 
-              className="items-center relative" 
-              activeOpacity={0.8}
-              onPress={handlePressOwnStory}
-            >
-              <View className={`p-0.5 rounded-full ${ownStories.length > 0 ? 'border-2 border-[#2AF5FF]' : 'border border-zinc-700'}`}>
-                <View className="p-0.5 bg-zinc-900 rounded-full w-16 h-16 items-center justify-center border border-white/5">
-                  {uploadingStory ? (
-                    <ActivityIndicator color="#2AF5FF" size="small" />
-                  ) : (
-                    <Text className="text-white font-bold text-xl">
-                       {getInitials(session.user.email?.split('@')[0] || 'M')}
-                    </Text>
-                  )}
+          <>
+            <View className="mr-4 items-center">
+              <TouchableOpacity 
+                className="items-center relative" 
+                activeOpacity={0.8}
+                onPress={handlePressOwnStory}
+              >
+                <View className={`p-0.5 rounded-full ${ownStories.length > 0 ? 'border-2 border-[#2AF5FF]' : 'border border-zinc-700'}`}>
+                  <View className="p-0.5 bg-zinc-900 rounded-full w-16 h-16 items-center justify-center border border-white/5">
+                    {uploadingStory ? (
+                      <ActivityIndicator color="#2AF5FF" size="small" />
+                    ) : (
+                      <Text className="text-white font-bold text-xl">
+                        {getInitials(session.user.email?.split('@')[0] || 'M')}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-              {ownStories.length === 0 && (
-                <TouchableOpacity 
-                  activeOpacity={0.7}
-                  onPress={handleCreateStory}
-                  className="absolute right-0 top-11 bg-blue-500 rounded-full border-2 border-black w-5 h-5 items-center justify-center"
-                >
-                  <Text className="text-white text-xs font-black">+</Text>
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-            <Text className="text-zinc-400 text-[11px] mt-1 font-semibold w-16 text-center" numberOfLines={1}>
-              Votre story
-            </Text>
-          </View>
+                {ownStories.length === 0 && (
+                  <TouchableOpacity 
+                    activeOpacity={0.7}
+                    onPress={handleCreateStory}
+                    className="absolute right-0 top-11 bg-blue-500 rounded-full border-2 border-black w-5 h-5 items-center justify-center"
+                  >
+                    <Text className="text-white text-xs font-black">+</Text>
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+              <Text className="text-zinc-400 text-[11px] mt-1 font-semibold w-16 text-center" numberOfLines={1}>
+                Votre story
+              </Text>
+            </View>
+
+            <View className="mr-4 items-center">
+              <TouchableOpacity 
+                className="items-center relative" 
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('HostLive')}
+              >
+                <View className="p-0.5 rounded-full border border-zinc-700">
+                  <View className="p-0.5 bg-zinc-900 rounded-full w-16 h-16 items-center justify-center border border-[#FE2C55]/30">
+                     <View className="bg-[#FE2C55]/20 p-2 rounded-full">
+                        <Text className="text-[#FE2C55] text-xs font-black">LIVE</Text>
+                     </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+              <Text className="text-[#FE2C55] text-[11px] mt-1 font-bold w-16 text-center" numberOfLines={1}>
+                Direct
+              </Text>
+            </View>
+          </>
         )}
 
         {loading ? (
