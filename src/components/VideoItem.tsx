@@ -309,6 +309,17 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const shareUrl = `https://g4.app/v/${video.id}`;
+      await Share.share({
+        message: `Regarde cette vidéo de @${video.user} sur G4 ! \n\n${shareUrl}`,
+      });
+    } catch (error: any) {
+      console.error('Share error:', error);
+    }
+  };
+
   const handleTouch = (e: any) => {
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300;
@@ -450,9 +461,11 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
           <Text className="text-white text-xs mt-1 font-bold">Favoris</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="items-center" onPress={() => Share.share({ message: `Regarde ça sur G4 ! \n\n${video.url}` })}>
-          <Share2 color="white" size={35} fill="rgba(255,255,255,0.9)" />
-          <Text className="text-white text-xs mt-1 font-bold">Partager</Text>
+        <TouchableOpacity className="items-center" onPress={handleShare}>
+          <View className="bg-white/10 p-2 rounded-full border border-white/10">
+            <Share2 color="white" size={30} fill="white" />
+          </View>
+          <Text className="text-white text-xs mt-1 font-bold shadow-sm">Partager</Text>
         </TouchableOpacity>
       </Animated.View>
 
