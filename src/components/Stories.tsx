@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { launchImageLibrary } from 'react-native-image-picker';
+import Skeleton from './Skeleton';
 
 export interface StoryItem {
   id: string;
@@ -192,7 +193,10 @@ const Stories: React.FC = () => {
 
   const handlePressStory = (creator: StoryCreator) => {
     if (creator.isLive) {
-      navigation.navigate('Live');
+      navigation.navigate('Live', { 
+        roomId: `room_${creator.id}`, 
+        hostName: creator.username 
+      });
     } else {
       navigation.navigate('StoryView', { creator });
     }
@@ -280,8 +284,13 @@ const Stories: React.FC = () => {
         )}
 
         {loading ? (
-          <View className="justify-center items-center h-20 w-20">
-            <ActivityIndicator color="#FE2C55" size="small" />
+          <View className="flex-row">
+            {[1, 2, 3, 4, 5].map(i => (
+              <View key={i} className="mr-4 items-center">
+                 <Skeleton width={64} height={64} borderRadius={32} />
+                 <Skeleton width={40} height={10} className="mt-2" />
+              </View>
+            ))}
           </View>
         ) : (
           creators.map((story) => (
