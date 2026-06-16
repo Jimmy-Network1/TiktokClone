@@ -16,6 +16,7 @@ import UploadScreen from '../screens/UploadScreen';
 import HashtagScreen from '../screens/HashtagScreen';
 import StoryViewScreen from '../screens/StoryViewScreen';
 import HostLiveScreen from '../screens/HostLiveScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
@@ -161,6 +162,7 @@ const RootNavigation: React.FC = () => {
         options={{ presentation: 'transparentModal', animation: 'fade' }} 
       />
       <Stack.Screen name="HostLive" component={HostLiveScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 };

@@ -16,6 +16,7 @@ import { FeedMode, useVideos } from '../hooks/useVideos';
 import { useAuth } from '../hooks/useAuth';
 import { Tv, ChevronLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { VideoSkeleton } from '../components/Skeleton';
 
 const { height } = Dimensions.get('window');
 
@@ -75,11 +76,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   };
 
   if (loading && !refreshing) {
-    return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#FE2C55" />
-      </View>
-    );
+    return <VideoSkeleton />;
   }
 
   if (error && videos.length === 0) {
@@ -182,22 +179,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
         viewabilityConfig={viewabilityConfig}
         renderItem={({ item }) => (
           <VideoItem 
-            video={{
-              id: item.id,
-              url: item.video_url || '',
-              thumbnailUrl: item.thumbnail_url || '',
-              userId: item.user_id || 'system',
-              user: item.profiles?.username || 'G4_User',
-              fullName: item.profiles?.full_name || 'G4 User',
-              avatarUrl: item.profiles?.avatar_url || null,
-              description: item.caption || '',
-              likes: item.likes || [],
-              comments: item.comments || [],
-              bookmarks: item.bookmarks || [],
-              shares: '0',
-              cutStart: item.cut_start,
-              cutEnd: item.cut_end,
-            }} 
+            video={item} 
             isActive={item.id === activeVideoId}
           />
         )}

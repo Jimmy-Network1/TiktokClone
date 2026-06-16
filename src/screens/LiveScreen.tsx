@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Image, Vibration } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Heart, X, Users, Star, Send } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
@@ -16,10 +16,13 @@ interface LiveMessage {
 const LiveScreen = () => {
   const { session } = useAuth();
   const navigation = useNavigation();
+  const route = useRoute<any>();
+  const { roomId, hostName } = route.params || { roomId: 'g4_official', hostName: 'G4 Official' };
+  
   const [message, setMessage] = useState('');
   const [spectatorsCount, setSpectatorsCount] = useState(1);
   const [messages, setMessages] = useState<LiveMessage[]>([
-    { id: '1', user: 'G4_Bot', text: 'Bienvenue sur le LIVE officiel de G4 ! 🚀' }
+    { id: '1', user: 'G4_Bot', text: `Bienvenue sur le LIVE de ${hostName} ! 🚀` }
   ]);
   
   const heartScale = useSharedValue(1);
@@ -41,7 +44,7 @@ const LiveScreen = () => {
 
   // Setup Real-time Live Interaction Channel
   useEffect(() => {
-    const channel = supabase.channel('live:g4_official', {
+    const channel = supabase.channel(`live:${roomId}`, {
       config: {
         presence: {
           key: session?.user?.id || `guest-${Math.random().toString(36).substring(7)}`,
@@ -93,7 +96,7 @@ const LiveScreen = () => {
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [session?.user]);
+  }, [session?.user, roomId]);
 
   // Send message on the live chat
   const handleSendMessage = () => {
@@ -151,10 +154,10 @@ const LiveScreen = () => {
         <View className="flex-row justify-between items-center mt-2">
           <View className="flex-row items-center bg-black/40 p-1 rounded-full pr-4 border border-white/5">
             <View className="h-8 w-8 rounded-full bg-[#FE2C55] items-center justify-center">
-              <Text className="text-white text-xs font-black">G4</Text>
+              <Text className="text-white text-xs font-black">{hostName.charAt(0).toUpperCase()}</Text>
             </View>
             <View className="ml-2">
-              <Text className="text-white text-[10px] font-bold">LIVE G4 Official</Text>
+              <Text className="text-white text-[10px] font-bold">LIVE {hostName}</Text>
               <Text className="text-[#2AF5FF] text-[8px] font-semibold">{spectatorsCount} spectateurs</Text>
             </View>
             <TouchableOpacity className="ml-3 bg-[#FE2C55] px-3 py-1 rounded-full">

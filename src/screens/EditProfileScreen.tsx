@@ -64,10 +64,13 @@ const EditProfileScreen = () => {
       try {
         const response = await fetch(asset.uri!);
         const blob = await response.blob();
+        
+        const fileToUpload = blob;
+        
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(filePath, blob, {
-            contentType: 'image/jpeg',
+          .upload(filePath, fileToUpload, {
+            contentType: asset.type || 'image/jpeg',
             upsert: true,
           });
 

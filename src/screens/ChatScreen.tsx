@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase';
 import { Send, ChevronLeft, Check, CheckCheck } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface Message {
   id: string;
@@ -27,6 +28,7 @@ interface ChatScreenProps {}
 
 const ChatScreen: React.FC<ChatScreenProps> = () => {
   const { session } = useAuth();
+  const { sendNotification } = useNotifications();
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { conversationId, otherUser } = route.params;
@@ -193,6 +195,14 @@ const ChatScreen: React.FC<ChatScreenProps> = () => {
       });
 
       if (error) throw error;
+
+      // Notify the recipient
+      sendNotification(otherUser.id, {
+        type: 'message',
+        title: 'Nouveau message !',
+        message: `${session.user.email?.split('@')[0]}: ${messageContent}`,
+        data: { conversationId, sender: session.user.id }
+      });
     } catch (error) {
       console.error('Error sending message:', error);
       setNewMessage(messageContent);
