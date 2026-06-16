@@ -29,19 +29,19 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   const isGuest = !session?.user;
   const initialMode = route?.params?.mode || 'for_you';
   const initialHashtag = route?.params?.hashtag;
+  const initialVideoId = route?.params?.initialVideoId;
   const [mode, setMode] = useState<FeedMode>(initialMode);
   const { videos, loading, loadingMore, hasMore, error, refresh, loadMore } = useVideos(
     isGuest, 
     mode, 
     session?.user?.id,
     5,
-    mode === 'hashtag' ? initialHashtag : undefined
+    mode === 'hashtag' ? initialHashtag : undefined,
+    initialVideoId
   );
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
-  
-  const initialVideoId = route?.params?.initialVideoId;
 
   useEffect(() => {
     if (initialVideoId && videos.length > 0) {
@@ -107,7 +107,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
       {/* Header with Logo and Tabs */}
       <View className="absolute left-0 right-0 top-0 z-10 pt-12 pb-2 bg-black/20">
         <View className="flex-row justify-between items-center px-4 mb-2">
-          {mode === 'hashtag' ? (
+          {navigation.canGoBack() ? (
             <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 bg-black/40 rounded-full">
               <ChevronLeft color="white" size={24} />
             </TouchableOpacity>
@@ -123,6 +123,8 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
           <View className="flex-row items-center">
             {mode === 'hashtag' ? (
               <Text className="text-white font-bold text-lg">#{initialHashtag}</Text>
+            ) : initialVideoId ? (
+              <Text className="text-white font-bold text-lg">Vidéo</Text>
             ) : (
               <>
                 {!isGuest && (
@@ -150,7 +152,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
         </View>
         
         {/* Stories Horizontal Scroll */}
-        {mode !== 'hashtag' && <Stories />}
+        {mode !== 'hashtag' && !initialVideoId && <Stories />}
       </View>
 
       <FlatList

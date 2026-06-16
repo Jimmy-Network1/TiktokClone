@@ -58,17 +58,18 @@ const EditProfileScreen = () => {
     if (result.assets && result.assets[0].uri) {
       const asset = result.assets[0];
       const fileName = `avatar-${profileId}-${Date.now()}.jpg`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = fileName;
 
       setSaving(true);
       try {
+        const response = await fetch(asset.uri!);
+        const blob = await response.blob();
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(filePath, {
-            uri: asset.uri,
-            name: fileName,
-            type: 'image/jpeg',
-          } as any);
+          .upload(filePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
 
         if (uploadError) throw uploadError;
 
@@ -78,8 +79,9 @@ const EditProfileScreen = () => {
 
         setAvatarUrl(publicUrl);
         Alert.alert('Succès', 'Photo mise à jour localement. Cliquez sur Enregistrer pour confirmer.');
-      } catch {
-        Alert.alert('Erreur', "Impossible d'uploader l'image.");
+      } catch (err: any) {
+        console.error('Avatar upload error:', err);
+        Alert.alert('Erreur', `Impossible d'uploader l'image. Détails : ${err.message || String(err)}`);
       } finally {
         setSaving(false);
       }

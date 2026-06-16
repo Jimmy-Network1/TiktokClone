@@ -260,7 +260,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
           <TouchableOpacity 
             style={{ width: COLUMN_WIDTH, height: COLUMN_WIDTH * 1.4 }}
             className="border-[0.5px] border-black bg-zinc-900 overflow-hidden relative"
-            onPress={() => navigation.navigate('Home', { initialVideoId: item.id })}
+            onPress={() => navigation.navigate('HashtagFeed', { initialVideoId: item.id, mode: 'for_you' })}
           >
             {/* Thumbnail placeholder if no real thumbnail */}
             <View className="flex-1 items-center justify-center">

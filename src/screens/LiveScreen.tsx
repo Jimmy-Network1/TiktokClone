@@ -24,6 +24,7 @@ const LiveScreen = () => {
   
   const heartScale = useSharedValue(1);
   const flatListRef = useRef<FlatList>(null);
+  const channelRef = useRef<any>(null);
   
   // Animation loop for ambient heart pulse
   useEffect(() => {
@@ -47,6 +48,8 @@ const LiveScreen = () => {
         },
       },
     });
+
+    channelRef.current = channel;
 
     channel
       // 1. Live Chat messages broadcast
@@ -87,6 +90,7 @@ const LiveScreen = () => {
       });
 
     return () => {
+      channelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [session?.user]);
@@ -109,8 +113,7 @@ const LiveScreen = () => {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     // Broadcast to other users in live
-    const channel = supabase.channel('live:g4_official');
-    channel.send({
+    channelRef.current?.send({
       type: 'broadcast',
       event: 'chat',
       payload: { user: username, text: textToSend },
@@ -127,8 +130,7 @@ const LiveScreen = () => {
     Vibration.vibrate(80);
 
     // Broadcast heart to everyone
-    const channel = supabase.channel('live:g4_official');
-    channel.send({
+    channelRef.current?.send({
       type: 'broadcast',
       event: 'heart',
       payload: { clicker: session?.user?.id || 'guest' }

@@ -60,7 +60,14 @@ const MOCK_VIDEOS: Video[] = [
   }
 ];
 
-export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUserId?: string, pageSize = 5, hashtag?: string) => {
+export const useVideos = (
+  isGuest = false, 
+  mode: FeedMode = 'for_you', 
+  sessionUserId?: string, 
+  pageSize = 5, 
+  hashtag?: string,
+  initialVideoId?: string
+) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -131,26 +138,56 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
 
       // 2. Fetch using personalized algorithm if authenticated and in For You mode
       if (mode !== 'hashtag' && mode === 'for_you' && sessionUserId && !isGuest) {
-        // We call the recommended videos RPC function
-        const { data: recommendedData, error: rpcError } = await supabase
-          .rpc('get_recommended_videos', { user_uuid: sessionUserId })
-          .select(`
-            id,
-            video_url,
-            thumbnail_url,
-            caption,
-            user_id,
-            cut_start,
-            cut_end,
-            profiles (id, username, full_name, avatar_url, bio),
-            likes (user_id),
-            comments (id),
-            bookmarks (user_id)
-          `)
-          .range(currentOffset, currentOffset + pageSize - 1);
+        // We call the recommended videos RPC function (returns SETOF videos, max 20)
+        const { data: rpcRows, error: rpcError } = await supabase
+          .rpc('get_recommended_videos', { user_uuid: sessionUserId });
         
-        data = recommendedData as any;
-        fetchError = rpcError;
+        if (rpcError) {
+          fetchError = rpcError;
+        } else {
+          const recommendedIds = (rpcRows || []).map((r: any) => r.id);
+          if (recommendedIds.length === 0) {
+            data = [];
+          } else {
+            // Paginate manually on the returned IDs
+            const paginatedIds = recommendedIds.slice(currentOffset, currentOffset + pageSize);
+            if (paginatedIds.length === 0) {
+              data = [];
+            } else {
+              // Fetch full details with relationships for the paginated IDs
+              const { data: fullData, error: fullError } = await supabase
+                .from('videos')
+                .select(`
+                  id,
+                  video_url,
+                  thumbnail_url,
+                  caption,
+                  user_id,
+                  cut_start,
+                  cut_end,
+                  profiles (id, username, full_name, avatar_url, bio),
+                  likes (user_id),
+                  comments (id),
+                  bookmarks (user_id)
+                `)
+                .in('id', paginatedIds);
+              
+              if (fullError) {
+                fetchError = fullError;
+              } else {
+                // Preserve the order returned by the recommendation algorithm
+                const idToIndexMap = new Map<string, number>(
+                  paginatedIds.map((id: string, index: number): [string, number] => [id, index])
+                );
+                data = (fullData || []).sort((a: any, b: any) => {
+                  const indexA = idToIndexMap.get(a.id) ?? 999;
+                  const indexB = idToIndexMap.get(b.id) ?? 999;
+                  return indexA - indexB;
+                });
+              }
+            }
+          }
+        }
       } else {
         // Classic query for Guest, Following, or fallback
         let query = supabase
@@ -199,6 +236,48 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
         }
       }).filter(v => v !== null) as Video[];
 
+      // Ensure initial video is included at the top if provided and not already present
+      if (initialVideoId && currentOffset === 0) {
+        const hasInitialVideo = normalizedVideos.some(v => v.id === initialVideoId);
+        if (!hasInitialVideo) {
+          try {
+            const { data: specificVideo, error: specificError } = await supabase
+              .from('videos')
+              .select(`
+                id,
+                video_url,
+                thumbnail_url,
+                caption,
+                user_id,
+                cut_start,
+                cut_end,
+                profiles (id, username, full_name, avatar_url, bio),
+                likes (user_id),
+                comments (id),
+                bookmarks (user_id)
+              `)
+              .eq('id', initialVideoId)
+              .single();
+
+            if (!specificError && specificVideo) {
+              const normalizedSpecific = {
+                ...specificVideo,
+                profiles: Array.isArray(specificVideo.profiles) ? specificVideo.profiles[0] : specificVideo.profiles,
+                likes: specificVideo.likes || [],
+                comments: specificVideo.comments || [],
+                bookmarks: specificVideo.bookmarks || [],
+                cut_start: specificVideo.cut_start,
+                cut_end: specificVideo.cut_end,
+              } as Video;
+              
+              normalizedVideos.unshift(normalizedSpecific);
+            }
+          } catch (e) {
+            console.error('Error fetching initial video:', e);
+          }
+        }
+      }
+
       // Guest filter
       let finalVideos = normalizedVideos;
       if (isGuest) {
@@ -237,11 +316,11 @@ export const useVideos = (isGuest = false, mode: FeedMode = 'for_you', sessionUs
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [isGuest, mode, sessionUserId, offset, pageSize, hashtag]);
+  }, [isGuest, mode, sessionUserId, offset, pageSize, hashtag, initialVideoId]);
 
   useEffect(() => {
     fetchVideos(true);
-  }, [mode, sessionUserId, hashtag]);
+  }, [mode, sessionUserId, hashtag, initialVideoId]);
 
   const loadMore = useCallback(() => {
     if (!loading && !loadingMore && hasMore) {
