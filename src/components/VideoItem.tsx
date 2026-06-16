@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 
 const { height, width } = Dimensions.get('window');
 
@@ -87,6 +88,7 @@ const viewedVideosThisSession = new Set<string>();
 
 const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
   const { session } = useAuth();
+  const { sendNotification } = useNotifications();
   const isFocused = useIsFocused();
   const navigation = useNavigation<any>();
   const [likes, setLikes] = useState(video.likes);
@@ -255,6 +257,14 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
         await supabase.from('likes').delete().eq('video_id', video.id).eq('user_id', currentUserId);
       } else {
         await supabase.from('likes').upsert({ video_id: video.id, user_id: currentUserId }, { onConflict: 'video_id,user_id' });
+        
+        // Notify video owner
+        sendNotification(video.userId, {
+          type: 'like',
+          title: 'Nouveau J\'aime !',
+          message: `${session.user.email?.split('@')[0]} a aimé votre vidéo.`,
+          data: { videoId: video.id }
+        });
       }
     } catch (error) {
       setLikes(previousLikes);

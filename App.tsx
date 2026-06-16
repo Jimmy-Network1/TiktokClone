@@ -7,17 +7,15 @@ import ErrorBoundary from './src/components/ErrorBoundary';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { supabase } from './src/lib/supabase';
-import { Session } from '@supabase/supabase-js';
 import { AuthProvider } from './src/context/AuthContext';
+import { useNotifications } from './src/hooks/useNotifications';
+import NotificationBanner from './src/components/NotificationBanner';
 
 function App(): React.JSX.Element {
   const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('App starting: authReady =', authReady);
-
   const initAuth = useCallback(async () => {
-    console.log('Initializing Auth...');
     setError(null);
     setAuthReady(false);
 
@@ -28,12 +26,9 @@ function App(): React.JSX.Element {
 
     try {
       const authPromise = supabase.auth.getSession();
-      const result = await Promise.race([authPromise, timeoutPromise]) as any;
-      clearTimeout(timeoutId);
-      console.log('Auth session received');
+      await Promise.race([authPromise, timeoutPromise]);
       setAuthReady(true);
     } catch (err: any) {
-      clearTimeout(timeoutId);
       console.error('Supabase auth initialization error:', err.message || err);
       if (err.message?.includes('Timeout') || err.message?.includes('Network')) {
         setError("Erreur de connexion. Vérifiez votre réseau.");
@@ -46,6 +41,21 @@ function App(): React.JSX.Element {
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  return (
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <AuthProvider>
+          <AppContent authReady={authReady} error={error} initAuth={initAuth} />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
+  );
+}
+
+const AppContent = ({ authReady, error, initAuth }: any) => {
+  const { latestNotification, clearNotification } = useNotifications();
 
   if (error) {
     return (
@@ -72,25 +82,16 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <AuthProvider>
-          <NavigationContainer>
-            <RootNavigation />
-          </NavigationContainer>
-          {error && (
-            <View className="absolute top-14 left-0 right-0 items-center z-[100]">
-               <View className="bg-red-600 px-4 py-2 rounded-full shadow-lg flex-row items-center">
-                  <View className="w-2 h-2 rounded-full bg-white mr-2 animate-pulse" />
-                  <Text className="text-white font-bold text-xs">Mode Hors-ligne — Contenu limité</Text>
-               </View>
-            </View>
-          )}
-        </AuthProvider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <>
+      <NavigationContainer>
+        <RootNavigation />
+      </NavigationContainer>
+      <NotificationBanner 
+        notification={latestNotification} 
+        onClear={clearNotification} 
+      />
+    </>
   );
-}
+};
 
 export default App;
