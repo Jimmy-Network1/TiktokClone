@@ -137,7 +137,7 @@ const InboxScreen: React.FC<InboxScreenProps> = () => {
       if (notification.type === 'comment') {
         navigation.navigate('Comments', { videoId: notification.video_id });
       } else {
-        navigation.navigate('Home', { initialVideoId: notification.video_id });
+        navigation.navigate('HashtagFeed', { initialVideoId: notification.video_id, mode: 'for_you' });
       }
     }
   };

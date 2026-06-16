@@ -83,6 +83,8 @@ const FloatingHeart: React.FC<{ heart: TapHeart; onFinish: () => void }> = ({ he
   );
 };
 
+const viewedVideosThisSession = new Set<string>();
+
 const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
   const { session } = useAuth();
   const isFocused = useIsFocused();
@@ -118,13 +120,19 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
 
   useEffect(() => {
     if (isActive) {
+      const isMockVideo = video.id.startsWith('mock-');
+      if (isMockVideo) return;
+      if (viewedVideosThisSession.has(video.id)) return;
+
       const timer = setTimeout(async () => {
         try {
+          viewedVideosThisSession.add(video.id);
           await supabase.from('video_views').insert({
             video_id: video.id,
             user_id: session?.user?.id || null
           });
         } catch (error) {
+          viewedVideosThisSession.delete(video.id);
           console.error('Error recording view:', error);
         }
       }, 2000);
@@ -238,6 +246,10 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
 
     setLikes(nextLikes);
 
+    if (video.id.startsWith('mock-')) {
+      return;
+    }
+
     try {
       if (!isAddingLike) {
         await supabase.from('likes').delete().eq('video_id', video.id).eq('user_id', currentUserId);
@@ -264,6 +276,13 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
       : bookmarks.filter(item => item.user_id !== currentUserId);
 
     setBookmarks(nextBookmarks);
+
+    if (video.id.startsWith('mock-')) {
+      try {
+        Vibration.vibrate(10);
+      } catch (e) {}
+      return;
+    }
 
     try {
       if (!isAddingBookmark) {
@@ -496,4 +515,12 @@ const styles = StyleSheet.create({
   }
 });
 
-export default VideoItem;
+export default React.memo(VideoItem, (prevProps, nextProps) => {
+  return (
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.video.id === nextProps.video.id &&
+    prevProps.video.likes.length === nextProps.video.likes.length &&
+    prevProps.video.comments.length === nextProps.video.comments.length &&
+    prevProps.video.bookmarks?.length === nextProps.video.bookmarks?.length
+  );
+});

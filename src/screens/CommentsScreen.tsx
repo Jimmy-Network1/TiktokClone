@@ -82,8 +82,9 @@ const CommentsScreen = () => {
 
       rawComments.forEach(comment => {
         if (comment.parent_id && commentMap[comment.parent_id]) {
-          commentMap[comment.parent_id].replies = commentMap[comment.parent_id].replies || [];
-          commentMap[comment.parent_id].replies.push(comment);
+          const parent = commentMap[comment.parent_id];
+          parent.replies = parent.replies || [];
+          parent.replies.push(comment);
         } else {
           rootComments.push(comment);
         }
