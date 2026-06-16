@@ -16,45 +16,25 @@ const AuthScreen = () => {
   const navigation = useNavigation<any>();
 
   async function handleAuth() {
-    if (!email || !password || (isSignUp && !username)) {
-      Alert.alert('Champs requis', 'Veuillez remplir toutes les informations nécessaires.');
+    if (!email || !password) {
+      Alert.alert('Champs requis', 'Veuillez remplir votre email et mot de passe.');
       return;
     }
 
     setLoading(true);
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              username: username.toLowerCase().trim(),
-              full_name: username.trim(),
-            },
-          },
-        });
-        
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        
-        if (data.session) {
-           if (navigation.canGoBack()) navigation.goBack();
-        } else {
-           Alert.alert('Succès', 'Compte créé ! Connectez-vous maintenant.');
-           setIsSignUp(false);
-        }
+        Alert.alert('Succès', 'Compte créé ! Connectez-vous.');
+        setIsSignUp(false);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        }
+        navigation.goBack();
       }
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Une erreur est survenue');
+      Alert.alert('Erreur', error.message);
     } finally {
       setLoading(false);
     }

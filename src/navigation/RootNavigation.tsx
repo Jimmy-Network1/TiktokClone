@@ -146,16 +146,16 @@ const RootNavigation: React.FC = () => {
         name="Comments"
         component={CommentsScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-      />
-      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
-      <Stack.Screen name="Conversations" component={ConversationsScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="Conversations" component={ConversationsScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="Live" component={LiveScreen} options={{ animation: 'fade' }} />
+      </Stack.Navigator>
       <Stack.Screen name="Hashtag" component={HashtagScreen} />
       <Stack.Screen name="HashtagFeed" component={FeedScreen} />
       <Stack.Screen 
