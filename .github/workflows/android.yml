@@ -3,6 +3,8 @@ name: Android Build
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
@@ -39,4 +41,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: G4-Release-APK
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          # On utilise un pattern wildcard pour trouver l'APK peu importe son nom exact
+          path: android/app/build/outputs/apk/release/*.apk
