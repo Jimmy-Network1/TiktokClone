@@ -2,17 +2,17 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import FeedScreen from '../screens/FeedScreen';
+import DiscoverScreen from '../screens/DiscoverScreen';
+import UploadScreen from '../screens/UploadScreen';
+import InboxScreen from '../screens/InboxScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AuthScreen from '../screens/AuthScreen';
 import CommentsScreen from '../screens/CommentsScreen';
 import PublicProfileScreen from '../screens/PublicProfileScreen';
-import DiscoverScreen from '../screens/DiscoverScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
-import InboxScreen from '../screens/InboxScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import LiveScreen from '../screens/LiveScreen';
-import UploadScreen from '../screens/UploadScreen';
 import HashtagScreen from '../screens/HashtagScreen';
 import StoryViewScreen from '../screens/StoryViewScreen';
 import HostLiveScreen from '../screens/HostLiveScreen';
@@ -28,23 +28,20 @@ const Stack = createNativeStackNavigator();
 
 const HomeIcon = ({ color, size }: { color: string; size: number }) => <Home color={color} size={size} />;
 const DiscoverIcon = ({ color, size }: { color: string; size: number }) => <Search color={color} size={size} />;
-const PlusIcon = ({ focused }: { focused: boolean }) => {
-  return (
-    <View style={{ 
-      backgroundColor: focused ? '#FFF' : '#2AF5FF', 
-      borderRadius: 10, 
-      paddingHorizontal: 12, 
-      paddingVertical: 4,
-      transform: [{ scale: focused ? 1.1 : 1 }]
-    }}>
-      <PlusSquare color="#000" size={26} strokeWidth={2.5} />
-    </View>
-  );
-};
 const InboxIcon = ({ color, size }: { color: string; size: number }) => <MessageCircle color={color} size={size} />;
 const ProfileIcon = ({ color, size }: { color: string; size: number }) => <User color={color} size={size} />;
 
-const PlusIconWrapper = ({ focused }: { focused: boolean }) => <PlusIcon focused={focused} />;
+const PlusIcon = ({ focused }: { focused: boolean }) => (
+  <View style={{ 
+    backgroundColor: focused ? '#FFF' : '#2AF5FF', 
+    borderRadius: 10, 
+    paddingHorizontal: 12, 
+    paddingVertical: 4,
+    transform: [{ scale: focused ? 1.1 : 1 }]
+  }}>
+    <PlusSquare color="#000" size={26} strokeWidth={2.5} />
+  </View>
+);
 
 const MainTabs: React.FC<any> = ({ navigation }) => {
   const { session } = useAuth();
@@ -85,7 +82,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
         name="Upload"
         component={UploadScreen}
         options={{
-          tabBarIcon: PlusIconWrapper,
+          tabBarIcon: ({ focused }) => <PlusIcon focused={focused} />,
           tabBarLabel: () => null,
         }}
         listeners={{
@@ -133,19 +130,16 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
   );
 };
 
-const RootNavigation: React.FC = () => {
+const RootNavigation = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabs} />
-      <Stack.Screen
-        name="Auth"
-        component={AuthScreen}
-        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      <Stack.Screen name="Auth" component={AuthScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen 
+        name="Comments" 
+        component={CommentsScreen} 
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }} 
       />
-      <Stack.Screen
-        name="Comments"
-        component={CommentsScreen}
-        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen
         name="EditProfile"
@@ -155,7 +149,6 @@ const RootNavigation: React.FC = () => {
       <Stack.Screen name="Conversations" component={ConversationsScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="Live" component={LiveScreen} options={{ animation: 'fade' }} />
-      </Stack.Navigator>
       <Stack.Screen name="Hashtag" component={HashtagScreen} />
       <Stack.Screen name="HashtagFeed" component={FeedScreen} />
       <Stack.Screen 
