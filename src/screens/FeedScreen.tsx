@@ -16,6 +16,7 @@ import { FeedMode, useVideos } from '../hooks/useVideos';
 import { useAuth } from '../hooks/useAuth';
 import { Tv, ChevronLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { VideoSkeleton } from '../components/Skeleton';
 
 const { height } = Dimensions.get('window');
 
@@ -75,11 +76,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   };
 
   if (loading && !refreshing) {
-    return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#FE2C55" />
-      </View>
-    );
+    return <VideoSkeleton />;
   }
 
   if (error && videos.length === 0) {

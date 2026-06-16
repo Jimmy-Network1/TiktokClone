@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import AuthWall from '../components/AuthWall';
 import { Play, Bookmark, Heart } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { ProfileSkeleton } from '../components/Skeleton';
 import { useAuth } from '../hooks/useAuth';
 
 const { width } = Dimensions.get('window');
@@ -141,6 +141,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  if (loading && !profile) {
+    return <ProfileSkeleton />;
+  }
 
   if (!session) {
     return (
