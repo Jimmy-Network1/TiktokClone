@@ -496,4 +496,6 @@ const styles = StyleSheet.create({
   }
 });
 
-export default VideoItem;
+export default React.memo(VideoItem, (prev, next) => {
+  return prev.video.id === next.video.id;
+});
