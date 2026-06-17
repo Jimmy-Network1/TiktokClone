@@ -43,3 +43,4 @@ jobs:
           name: G4-Release-APK
           # On utilise un pattern wildcard pour trouver l'APK peu importe son nom exact
           path: android/app/build/outputs/apk/release/*.apk
+# Trigger build
