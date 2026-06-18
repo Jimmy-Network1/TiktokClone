@@ -43,31 +43,33 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
   );
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     if (initialVideoId && videos.length > 0) {
       const index = videos.findIndex(v => v.id === initialVideoId);
-      if (index !== -1) {
-        setActiveVideoId(initialVideoId);
+      if (index !== -1 && index !== activeIndex) {
+        setActiveIndex(index);
         setTimeout(() => {
           flatListRef.current?.scrollToIndex({ index, animated: false });
         }, 100);
       }
-    } else if (videos.length > 0 && !activeVideoId) {
-      setActiveVideoId(videos[0].id);
+    } else if (activeIndex >= videos.length && videos.length > 0) {
+      setActiveIndex(0);
     }
-  }, [initialVideoId, videos, activeVideoId]);
+  }, [initialVideoId, videos, activeIndex]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems && viewableItems.length > 0) {
-      const firstVisibleItem = viewableItems[0].item;
-      setActiveVideoId(firstVisibleItem.id);
+      const firstVisibleItem = viewableItems.find((item: any) => item.isViewable) || viewableItems[0];
+      if (typeof firstVisibleItem.index === 'number') {
+        setActiveIndex(firstVisibleItem.index);
+      }
     }
   }).current;
 
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 80,
+    itemVisiblePercentThreshold: 70,
   }).current;
 
   const onRefresh = async () => {
@@ -142,17 +144,30 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ route }) => {
           snapToInterval={height}
           snapToAlignment="start"
           decelerationRate="fast"
-          windowSize={5}
+          windowSize={3}
           initialNumToRender={2}
           maxToRenderPerBatch={2}
+          updateCellsBatchingPeriod={50}
           removeClippedSubviews={Platform.OS === 'android'}
           keyExtractor={(item) => item.id}
+          extraData={activeIndex}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          renderItem={({ item }) => (
+          getItemLayout={(_, index) => ({
+            length: height,
+            offset: height * index,
+            index,
+          })}
+          onScrollToIndexFailed={({ index }) => {
+            setTimeout(() => {
+              flatListRef.current?.scrollToOffset({ offset: index * height, animated: false });
+            }, 100);
+          }}
+          renderItem={({ item, index }) => (
             <VideoItem 
               video={item} 
-              isActive={item.id === activeVideoId}
+              isActive={index === activeIndex}
+              shouldPreload={Math.abs(index - activeIndex) <= 1}
             />
           )}
           refreshControl={

@@ -19,7 +19,7 @@ function App(): React.JSX.Element {
     setError(null);
     setAuthReady(false);
 
-    let timeoutId: any;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise((__unused, reject) => {
       timeoutId = setTimeout(() => reject(new Error('Le serveur ne répond pas (Timeout)')), 8000);
     });
@@ -34,6 +34,10 @@ function App(): React.JSX.Element {
         setError("Erreur de connexion. Vérifiez votre réseau.");
       } else {
         setAuthReady(true);
+      }
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
     }
   }, []);

@@ -114,7 +114,7 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
       // STEP: Pré-optimisation (Simulation de compression)
       // Dans une app de prod, on utiliserait react-native-video-helper ici
       setUploadProgress(0.1); 
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Temps de compression simulé
+      await new Promise<void>(resolve => setTimeout(() => resolve(), 1500)); // Temps de compression simulé
       setUploadProgress(0.2);
 
       const extension = asset.uri.split('.').pop() || 'mp4';

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Vibration, Image, Modal } from 'react-native';
-import { Video } from 'react-native-video';
+import Video from 'react-native-video';
 import { Heart, MessageCircle, Share2, Music2, Play, Pause, Bookmark, Folder } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
@@ -22,9 +22,19 @@ const { height, width } = Dimensions.get('window');
 interface VideoItemProps {
   video: any;
   isActive: boolean;
+  shouldPreload?: boolean;
 }
 
-const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
+const VIDEO_BUFFER_CONFIG = {
+  minBufferMs: 8000,
+  maxBufferMs: 20000,
+  bufferForPlaybackMs: 750,
+  bufferForPlaybackAfterRebufferMs: 1500,
+  backBufferDurationMs: 120000,
+  cacheSizeMB: 256,
+};
+
+const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = false }) => {
   const { session } = useAuth();
   const isFocused = useIsFocused();
   const navigation = useNavigation<any>();
@@ -33,7 +43,12 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const lastTap = useRef<number>(0);
+  const sourceUri = typeof video?.url === 'string' ? video.url.trim() : '';
+  const thumbnailUri = typeof video?.thumbnailUrl === 'string' ? video.thumbnailUrl.trim() : '';
+  const safeUsername = video?.user || 'G4_User';
+  const shouldMountVideo = !!sourceUri && (isActive || shouldPreload);
   
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
@@ -48,6 +63,19 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
       false
     );
   }, [rotation]);
+
+  useEffect(() => {
+    setPlaybackError(null);
+    if (!shouldMountVideo) {
+      setIsLoading(false);
+      setProgress(0);
+      return;
+    }
+
+    if (isActive) {
+      setIsLoading(true);
+    }
+  }, [isActive, shouldMountVideo, sourceUri]);
 
   const diskStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
@@ -164,7 +192,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
     try {
       const shareUrl = `https://g4.app/v/${video.id}`;
       await Share.share({
-        message: `Regarde cette vidéo de @${video.user} sur G4 ! \n\n${shareUrl}`,
+        message: `Regarde cette vidéo de @${safeUsername} sur G4 ! \n\n${shareUrl}`,
       });
     } catch (error: any) {
       console.error('Share error:', error);
@@ -195,27 +223,55 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
   return (
     <View style={{ height, width }} className="relative bg-black">
       <Pressable onPress={handleTouch} style={StyleSheet.absoluteFill}>
-        <Video
-          source={{ uri: video.url }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-          repeat
-          muted={false}
-          paused={!isFocused || !isActive || isPaused}
-          onLoad={() => setIsLoading(false)}
-          onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
-          onProgress={({ currentTime, playableDuration }) => {
-            if (playableDuration > 0) setProgress(currentTime / playableDuration);
-          }}
-          poster={video.thumbnailUrl || undefined}
-          posterResizeMode="cover"
-          bufferConfig={{
-            minBufferMs: 2500,
-            maxBufferMs: 5000,
-            bufferForPlaybackMs: 1500,
-            bufferForPlaybackAfterRebufferMs: 2000
-          }}
-        />
+        {thumbnailUri ? (
+          <Image source={{ uri: thumbnailUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : null}
+
+        {shouldMountVideo && (
+          <Video
+            source={{
+              uri: sourceUri,
+              minLoadRetryCount: 2,
+              bufferConfig: VIDEO_BUFFER_CONFIG,
+            }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            repeat
+            muted={false}
+            paused={!isFocused || !isActive || isPaused}
+            onLoadStart={() => {
+              if (isActive) setIsLoading(true);
+            }}
+            onLoad={() => {
+              setPlaybackError(null);
+              setIsLoading(false);
+            }}
+            onReadyForDisplay={() => setIsLoading(false)}
+            onBuffer={({ isBuffering }) => {
+              if (isActive) setIsLoading(isBuffering);
+            }}
+            onError={(error) => {
+              console.error('Video playback error:', video?.id, error);
+              setPlaybackError('Lecture impossible');
+              setIsLoading(false);
+            }}
+            onProgress={({ currentTime, playableDuration }) => {
+              if (playableDuration > 0) setProgress(currentTime / playableDuration);
+            }}
+            poster={thumbnailUri || undefined}
+            posterResizeMode="cover"
+            playInBackground={false}
+            playWhenInactive={false}
+            preventsDisplaySleepDuringVideoPlayback={isActive}
+            progressUpdateInterval={250}
+          />
+        )}
+
+        {!sourceUri && (
+          <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-zinc-950">
+            <Text className="text-zinc-500 text-sm font-semibold">Vidéo indisponible</Text>
+          </View>
+        )}
       </Pressable>
 
       <View style={StyleSheet.absoluteFill} pointerEvents="none" className="items-center justify-center">
@@ -224,9 +280,16 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
         </Animated.View>
       </View>
 
-      {isLoading && (
+      {isActive && isLoading && !playbackError && (
         <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/20">
           <ActivityIndicator color="#2AF5FF" size="large" />
+        </View>
+      )}
+
+      {isActive && playbackError && (
+        <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/40 px-8">
+          <Text className="text-white text-base font-bold text-center">{playbackError}</Text>
+          <Text className="text-zinc-400 text-xs text-center mt-2">Passez à la vidéo suivante ou réessayez plus tard.</Text>
         </View>
       )}
 
@@ -242,7 +305,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
               {video.avatarUrl ? (
                 <Image source={{ uri: video.avatarUrl }} className="h-full w-full" />
               ) : (
-                <Text className="text-white font-black text-base">{video.user.charAt(0).toUpperCase()}</Text>
+                <Text className="text-white font-black text-base">{safeUsername.charAt(0).toUpperCase()}</Text>
               )}
            </View>
            <View className="absolute -bottom-2 self-center bg-[#FE2C55] rounded-full w-5 h-5 items-center justify-center border-2 border-black">
@@ -257,7 +320,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
 
         <TouchableOpacity className="items-center" onPress={() => navigation.navigate('Comments', { videoId: video.id })}>
           <MessageCircle color="white" size={35} fill="rgba(255,255,255,0.9)" />
-          <Text className="text-white text-xs mt-1 font-bold">{formatCount(video.comments.length)}</Text>
+          <Text className="text-white text-xs mt-1 font-bold">{formatCount(video.comments?.length || 0)}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity className="items-center" onPress={handleBookmark}>
@@ -272,7 +335,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
       </View>
 
       <View className="absolute bottom-6 left-4 right-20">
-        <Text className="text-white font-bold text-lg mb-2">@{video.user}</Text>
+        <Text className="text-white font-bold text-lg mb-2">@{safeUsername}</Text>
         <Text className="text-white text-sm mb-4 leading-5" numberOfLines={3}>
           {video.description}
         </Text>
@@ -280,7 +343,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive }) => {
         <View className="flex-row items-center bg-black/30 self-start px-3 py-1.5 rounded-full border border-white/10">
           <Music2 color="#2AF5FF" size={14} />
           <View className="ml-2">
-             <Text className="text-white text-[11px] font-bold">Son original - {video.user}</Text>
+             <Text className="text-white text-[11px] font-bold">Son original - {safeUsername}</Text>
           </View>
         </View>
       </View>
@@ -319,5 +382,9 @@ const styles = StyleSheet.create({
 });
 
 export default React.memo(VideoItem, (prevProps, nextProps) => {
-  return prevProps.video.id === nextProps.video.id && prevProps.isActive === nextProps.isActive;
+  return (
+    prevProps.video.id === nextProps.video.id &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.shouldPreload === nextProps.shouldPreload
+  );
 });

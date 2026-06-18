@@ -6,14 +6,15 @@ import { X, Camera, Check, Star, Send, User } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withDelay, withTiming, runOnJS } from 'react-native-reanimated';
-import { Camera as VisionCamera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import { Camera as VisionCamera, useCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
 
 const { width, height } = Dimensions.get('window');
 
 const HostLiveScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { session } = useAuth();
-  const { hasPermission, requestPermission } = useCameraPermission();
+  const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
+  const { hasPermission: hasMicrophonePermission, requestPermission: requestMicrophonePermission } = useMicrophonePermission();
   const device = useCameraDevice('front');
 
   const [isLive, setIsLive] = useState(false);
@@ -24,8 +25,17 @@ const HostLiveScreen: React.FC = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   
   useEffect(() => {
-    if (!hasPermission) requestPermission();
-  }, [hasPermission]);
+    if (!hasCameraPermission) requestCameraPermission();
+    if (!hasMicrophonePermission) requestMicrophonePermission();
+  }, [hasCameraPermission, hasMicrophonePermission, requestCameraPermission, requestMicrophonePermission]);
+
+  useEffect(() => {
+    return () => {
+      if (sessionId) {
+        supabase.from('live_sessions').update({ is_active: false }).eq('id', sessionId).then();
+      }
+    };
+  }, [sessionId]);
 
   // Fetch guest requests
   useEffect(() => {
@@ -51,6 +61,23 @@ const HostLiveScreen: React.FC = () => {
   }, [isLive, sessionId]);
 
   const startLive = async () => {
+    if (!session?.user) {
+      navigation.navigate('Auth');
+      return;
+    }
+
+    if (!hasCameraPermission) {
+      const granted = await requestCameraPermission();
+      if (!granted) {
+        Alert.alert('Caméra requise', 'Autorisez la caméra pour lancer un live.');
+        return;
+      }
+    }
+
+    if (!hasMicrophonePermission) {
+      await requestMicrophonePermission();
+    }
+
     if (!title.trim()) {
       Alert.alert('Titre requis', 'Veuillez donner un titre à votre direct.');
       return;
@@ -78,8 +105,17 @@ const HostLiveScreen: React.FC = () => {
 
   const acceptGuest = async (request: any) => {
     await supabase.from('live_guest_requests').update({ status: 'accepted' }).eq('id', request.id);
-    setCurrentGuest(request.profiles.username);
+    const profile = Array.isArray(request.profiles) ? request.profiles[0] : request.profiles;
+    setCurrentGuest(profile?.username || 'invite');
     setGuestRequests(prev => prev.filter(r => r.id !== request.id));
+  };
+
+  const stopLive = async () => {
+    if (sessionId) {
+      await supabase.from('live_sessions').update({ is_active: false }).eq('id', sessionId);
+    }
+    setIsLive(false);
+    navigation.goBack();
   };
 
   if (!isLive) {
@@ -87,7 +123,7 @@ const HostLiveScreen: React.FC = () => {
       <View style={styles.container} className="bg-zinc-950">
         <SafeAreaView className="flex-1">
           <Text className="text-white text-2xl font-bold text-center mt-10">Lancer votre LIVE</Text>
-          {device && hasPermission ? (
+          {device && hasCameraPermission ? (
             <VisionCamera style={StyleSheet.absoluteFill} device={device} isActive={true} />
           ) : (
              <View className="w-full h-80 bg-zinc-900 items-center justify-center">
@@ -115,7 +151,7 @@ const HostLiveScreen: React.FC = () => {
   return (
     <View style={styles.container} className="bg-black">
       {/* Live UI */}
-      {device && hasPermission && <VisionCamera style={StyleSheet.absoluteFill} device={device} isActive={true} />}
+      {device && hasCameraPermission && <VisionCamera style={StyleSheet.absoluteFill} device={device} isActive={true} />}
       
       {currentGuest && (
         <View className="absolute top-20 right-5 w-24 h-32 bg-zinc-800 rounded-lg border-2 border-white items-center justify-center">
@@ -126,7 +162,7 @@ const HostLiveScreen: React.FC = () => {
 
       <SafeAreaView className="flex-1 justify-between p-5">
         <View className="flex-row justify-between items-center">
-            <TouchableOpacity onPress={() => { setIsLive(false); navigation.goBack(); }} className="bg-black/50 p-2 rounded-full">
+            <TouchableOpacity onPress={stopLive} className="bg-black/50 p-2 rounded-full">
                <X color="white" size={24} />
             </TouchableOpacity>
         </View>
@@ -137,7 +173,7 @@ const HostLiveScreen: React.FC = () => {
              <Text className="text-white font-bold mb-2">Demandes de participation</Text>
              {guestRequests.map(req => (
                <View key={req.id} className="flex-row items-center justify-between py-2 border-t border-white/5">
-                 <Text className="text-white">@{req.profiles.username}</Text>
+                 <Text className="text-white">@{(Array.isArray(req.profiles) ? req.profiles[0] : req.profiles)?.username || 'invite'}</Text>
                  <TouchableOpacity className="bg-green-600 p-2 rounded-full" onPress={() => acceptGuest(req)}>
                    <Check color="white" size={16} />
                  </TouchableOpacity>

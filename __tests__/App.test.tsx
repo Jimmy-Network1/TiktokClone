@@ -42,5 +42,6 @@ test('renders correctly', async () => {
     const component = ReactTestRenderer.create(<App />);
     // Wait for the next tick to allow useEffect and promises to resolve
     await Promise.resolve();
+    component.unmount();
   });
 });

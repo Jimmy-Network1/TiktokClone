@@ -27,6 +27,7 @@ const Stories: React.FC = () => {
   const navigation = useNavigation<any>();
   const [creators, setCreators] = useState<StoryCreator[]>([]);
   const [ownStories, setOwnStories] = useState<StoryItem[]>([]);
+  const [liveSessionByHost, setLiveSessionByHost] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [uploadingStory, setUploadingStory] = useState(false);
 
@@ -60,7 +61,9 @@ const Stories: React.FC = () => {
         .eq('is_active', true);
 
       const liveHostIds = new Set((activeLives || []).map(l => l.host_id));
-      const liveSessionMap = new Map((activeLives || []).map(l => [l.host_id, l.id]));
+      setLiveSessionByHost(
+        Object.fromEntries((activeLives || []).map(l => [l.host_id, l.id])),
+      );
 
       // Regrouper par user_id
       const groupsMap = new Map<string, StoryCreator>();
@@ -69,7 +72,7 @@ const Stories: React.FC = () => {
         const userId = s.user_id;
         // ... (keep rest of logic, but update story creator with isLive)
         
-        const profile = s.profiles;
+        const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
         const storyItem: StoryItem = {
           id: s.id,
           media_url: s.media_url,
@@ -156,15 +159,17 @@ const Stories: React.FC = () => {
       quality: 0.8,
     });
 
-    if (result.assets && result.assets[0].uri) {
-      const asset = result.assets[0];
-      const isVideo = asset.type?.startsWith('video/') || asset.uri.endsWith('.mp4');
+    const asset = result.assets?.[0];
+    const uri = asset?.uri;
+
+    if (asset && uri) {
+      const isVideo = asset.type?.startsWith('video/') || uri.endsWith('.mp4');
       const ext = isVideo ? 'mp4' : 'jpg';
       const fileName = `story-${session.user.id}-${Date.now()}.${ext}`;
       
       setUploadingStory(true);
       try {
-        const response = await fetch(asset.uri);
+        const response = await fetch(uri);
         const blob = await response.blob();
         
         // Ensure we have a valid blob or fallback to a pseudo-file object for RN
@@ -207,7 +212,7 @@ const Stories: React.FC = () => {
 
   const handlePressStory = (creator: StoryCreator) => {
     if (creator.isLive) {
-      const sessionId = liveSessionMap.get(creator.id);
+      const sessionId = liveSessionByHost[creator.id];
       navigation.navigate('Live', { 
         roomId: `room_${creator.id}`, 
         hostName: creator.username,

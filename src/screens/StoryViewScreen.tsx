@@ -10,6 +10,26 @@ import { StoryCreator } from '../components/Stories';
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 secondes par story
 
+const StoryProgressBar: React.FC<{
+  index: number;
+  currentIndex: number;
+  progress: { value: number };
+}> = ({ index, currentIndex, progress }) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    if (index < currentIndex) {
+      return { width: '100%' };
+    }
+    if (index > currentIndex) {
+      return { width: '0%' };
+    }
+    return {
+      width: `${progress.value * 100}%`,
+    };
+  });
+
+  return <Animated.View style={[styles.progressIndicator, animatedStyle]} className="bg-white h-full" />;
+};
+
 const StoryViewScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
@@ -21,8 +41,6 @@ const StoryViewScreen: React.FC = () => {
   
   const currentStory = stories[currentIndex];
   const progress = useSharedValue(0);
-  const timerRef = useRef<any>(null);
-
   const startAnimation = () => {
     progress.value = 0;
     progress.value = withTiming(1, {
@@ -74,20 +92,6 @@ const StoryViewScreen: React.FC = () => {
     }
   };
 
-  const progressStyle = (index: number) => {
-    return useAnimatedStyle(() => {
-      if (index < currentIndex) {
-        return { width: '100%' };
-      }
-      if (index > currentIndex) {
-        return { width: '0%' };
-      }
-      return {
-        width: `${progress.value * 100}%`,
-      };
-    });
-  };
-
   const getInitials = (username: string) => {
     return username.charAt(0).toUpperCase();
   };
@@ -131,10 +135,7 @@ const StoryViewScreen: React.FC = () => {
         <View className="flex-row space-x-1 mb-4">
           {stories.map((_, index) => (
             <View key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-              <Animated.View 
-                style={[styles.progressIndicator, progressStyle(index)]} 
-                className="bg-white h-full"
-              />
+              <StoryProgressBar index={index} currentIndex={currentIndex} progress={progress} />
             </View>
           ))}
         </View>
