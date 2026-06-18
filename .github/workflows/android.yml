@@ -5,9 +5,20 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Choose the APK type to build'
+        required: true
+        default: debug
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
-  build:
+  debug-build:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'debug'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -21,6 +32,12 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
+          cache-dependency-path: |
+            android/build.gradle
+            android/app/build.gradle
+            android/settings.gradle
+            android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -43,4 +60,46 @@ jobs:
           name: G4-Debug-APK
           # On utilise un pattern wildcard pour trouver l'APK peu importe son nom exact
           path: android/app/build/outputs/apk/debug/*.apk
-# Trigger build
+
+  release-build:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release'
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      ORG_GRADLE_PROJECT_org_gradle_jvmargs: -Xmx2048m -XX:MaxMetaspaceSize=512m
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+          cache-dependency-path: |
+            android/build.gradle
+            android/app/build.gradle
+            android/settings.gradle
+            android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: G4-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk

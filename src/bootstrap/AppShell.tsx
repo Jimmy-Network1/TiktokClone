@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import RootNavigation from '../navigation/RootNavigation';
 import Logo from '../components/Logo';
 import NotificationBanner from '../components/NotificationBanner';
 import StartupIssueBanner from '../components/StartupIssueBanner';
 import { useNotifications } from '../hooks/useNotifications';
+
+const RootNavigation = lazy(() => import('../navigation/RootNavigation'));
 
 type AppShellProps = {
   authReady: boolean;
@@ -40,9 +41,18 @@ const AppShell: React.FC<AppShellProps> = ({ authReady, error, initAuth }) => {
   return (
     <>
       <StartupIssueBanner />
-      <NavigationContainer>
-        <RootNavigation />
-      </NavigationContainer>
+      <Suspense
+        fallback={
+          <View className="flex-1 items-center justify-center bg-black">
+            <Logo size="large" />
+            <ActivityIndicator size="small" color="#2AF5FF" style={{ marginTop: 20 }} />
+          </View>
+        }
+      >
+        <NavigationContainer>
+          <RootNavigation />
+        </NavigationContainer>
+      </Suspense>
       <NotificationBanner notification={latestNotification} onClear={clearNotification} />
     </>
   );
