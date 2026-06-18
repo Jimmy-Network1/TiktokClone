@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { AlertCircle, RefreshCw } from 'lucide-react-native';
+import { recordRuntimeIssue } from '../lib/runtimeDiagnostics';
 
 interface Props {
   children: ReactNode;
@@ -23,6 +24,12 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    recordRuntimeIssue({
+      source: 'boundary',
+      fatal: false,
+      message: error.message,
+      stack: error.stack,
+    }).catch(() => undefined);
   }
 
   private handleReset = () => {
