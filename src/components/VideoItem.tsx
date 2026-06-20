@@ -44,6 +44,87 @@ interface VideoItemProps {
   shouldPreload?: boolean;
 }
 
+const VideoContent: React.FC<{
+  sourceUri: string;
+  thumbnailUri: string;
+  isActive: boolean;
+  shouldMountVideo: boolean;
+  isPaused: boolean;
+  onLoad: () => void;
+  onBuffer: (buffering: boolean) => void;
+  onProgress: (progress: number) => void;
+  onError: (error: string | null) => void;
+  onReady: () => void;
+  videoId: string;
+}> = ({
+  sourceUri,
+  thumbnailUri,
+  isActive,
+  shouldMountVideo,
+  isPaused,
+  onLoad,
+  onBuffer,
+  onProgress,
+  onError,
+  onReady,
+  videoId,
+}) => {
+  const player = useVideoPlayer(
+    { uri: sourceUri, initializeOnCreation: false },
+    useCallback((player: VideoPlayer) => {
+      player.loop = true;
+      player.muted = false;
+      if (shouldMountVideo) {
+        player.play();
+      }
+    }, [shouldMountVideo]),
+  );
+
+  useEvent(player, 'onLoad', () => {
+    onLoad();
+  });
+
+  useEvent(player, 'onProgress', (data) => {
+    const dur = player.duration;
+    if (dur > 0 && data.currentTime >= 0) {
+      onProgress(data.currentTime / dur);
+    }
+  });
+
+  useEvent(player, 'onError', (error) => {
+    console.error('Video playback error:', videoId, error);
+    onError('Lecture impossible');
+  });
+
+  useEvent(player, 'onReadyToDisplay', () => {
+    onReady();
+  });
+
+  useEvent(player, 'onBuffer', (buffering) => {
+    if (isActive) onBuffer(buffering);
+  });
+
+  useEffect(() => {
+    if (!shouldMountVideo) {
+      player.pause();
+      return;
+    }
+    if (isActive && !isPaused) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isActive, isPaused, shouldMountVideo, player]);
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      resizeMode="cover"
+    />
+  );
+};
+
 const VideoItem: React.FC<VideoItemProps> = ({
   video,
   isActive,
@@ -66,49 +147,10 @@ const VideoItem: React.FC<VideoItemProps> = ({
       ? video.thumbnailUrl.trim()
       : '';
   const safeUsername = video?.user || 'G4_User';
-  const shouldMountVideo = !!sourceUri && (isActive || shouldPreload);
+  const hasSource = !!sourceUri;
+  const shouldMountVideo = hasSource && (isActive || shouldPreload);
 
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const player = useVideoPlayer(
-    { uri: sourceUri, initializeOnCreation: false },
-    useCallback((player: VideoPlayer) => {
-      player.loop = true;
-      player.muted = false;
-      if (shouldMountVideo) {
-        player.play();
-      }
-    }, [shouldMountVideo]),
-  );
-
-  useEvent(player, 'onLoad', (data) => {
-    setPlaybackError(null);
-    setIsLoading(false);
-  });
-
-  useEvent(player, 'onProgress', (data) => {
-    const dur = player.duration;
-    if (dur > 0 && data.currentTime >= 0) {
-      setProgress(data.currentTime / dur);
-    }
-  });
-
-  useEvent(player, 'onError', (error) => {
-    console.error('Video playback error:', video?.id, error);
-    setPlaybackError('Lecture impossible');
-    setIsLoading(false);
-  });
-
-  useEvent(player, 'onReadyToDisplay', () => {
-    setIsLoading(false);
-  });
-
-  useEvent(player, 'onBuffer', (buffering) => {
-    if (isActive) setIsLoading(buffering);
-  });
-
-  const playerRef = useRef(player);
-  playerRef.current = player;
 
   useEffect(() => {
     if (isActive && isLoading && !playbackError) {
@@ -124,28 +166,6 @@ const VideoItem: React.FC<VideoItemProps> = ({
       }
     };
   }, [isActive, isLoading, playbackError]);
-
-  useEffect(() => {
-    if (!sourceUri || !shouldMountVideo) {
-      setIsLoading(false);
-      player.pause();
-      return;
-    }
-    if (isActive && shouldMountVideo) {
-      setIsLoading(true);
-      player.play();
-    } else {
-      player.pause();
-    }
-  }, [isActive, shouldMountVideo, sourceUri, player]);
-
-  useEffect(() => {
-    if (shouldMountVideo && isActive && !isPaused) {
-      player.play();
-    } else {
-      player.pause();
-    }
-  }, [isPaused, isActive, shouldMountVideo, player]);
 
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
@@ -335,10 +355,15 @@ const VideoItem: React.FC<VideoItemProps> = ({
     opacity: heartOpacity.value,
   }));
 
+  const handleRetry = useCallback(() => {
+    setPlaybackError(null);
+    setIsLoading(true);
+  }, []);
+
   return (
     <View style={{ height, width }} className="relative bg-black">
       <Pressable onPress={handleTouch} style={StyleSheet.absoluteFill}>
-        {thumbnailUri ? (
+        {thumbnailUri && !hasSource ? (
           <Image
             source={{ uri: thumbnailUri }}
             style={StyleSheet.absoluteFill}
@@ -346,15 +371,29 @@ const VideoItem: React.FC<VideoItemProps> = ({
           />
         ) : null}
 
-        {shouldMountVideo && sourceUri && (
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
+        {hasSource ? (
+          <VideoContent
+            sourceUri={sourceUri}
+            thumbnailUri={thumbnailUri}
+            isActive={isActive}
+            shouldMountVideo={shouldMountVideo}
+            isPaused={isPaused}
+            onLoad={() => {
+              setPlaybackError(null);
+              setIsLoading(false);
+            }}
+            onBuffer={(buffering) => {
+              if (isActive) setIsLoading(buffering);
+            }}
+            onProgress={(p) => setProgress(p)}
+            onError={(err) => {
+              setPlaybackError(err);
+              setIsLoading(false);
+            }}
+            onReady={() => setIsLoading(false)}
+            videoId={video.id}
           />
-        )}
-
-        {!sourceUri && (
+        ) : (
           <View
             style={StyleSheet.absoluteFill}
             className="items-center justify-center bg-zinc-950"
@@ -380,7 +419,7 @@ const VideoItem: React.FC<VideoItemProps> = ({
         </Animated.View>
       </View>
 
-      {isActive && isLoading && !playbackError && (
+      {isActive && hasSource && isLoading && !playbackError && (
         <View
           style={StyleSheet.absoluteFill}
           className="items-center justify-center bg-black/20"
@@ -391,11 +430,7 @@ const VideoItem: React.FC<VideoItemProps> = ({
 
       {isActive && playbackError && (
         <Pressable
-          onPress={() => {
-            setPlaybackError(null);
-            setIsLoading(true);
-            player.play();
-          }}
+          onPress={handleRetry}
           style={StyleSheet.absoluteFill}
           className="items-center justify-center bg-black/40 px-8"
         >
