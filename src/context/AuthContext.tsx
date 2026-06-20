@@ -17,19 +17,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setLoading(false);
-    });
+    let mounted = true;
 
-    // Listen for auth state changes
+    supabase.auth.getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (mounted) {
+          setSession(currentSession);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('AuthContext: failed to get session', err);
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, updatedSession) => {
-      setSession(updatedSession);
-      setLoading(false);
+      if (mounted) {
+        setSession(updatedSession);
+        setLoading(false);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);

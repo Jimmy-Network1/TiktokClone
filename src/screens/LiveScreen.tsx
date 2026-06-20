@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Heart, Radio, Send, UserPlus, Users, Video as VideoIcon, X } from 'lucide-react-native';
-import Video from 'react-native-video';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
@@ -35,6 +34,15 @@ const LiveScreen = () => {
   const route = useRoute<any>();
   const { session } = useAuth();
   const initialSessionId = route.params?.sessionId as string | undefined;
+  const VideoComponent = useRef<any>(null);
+
+  useEffect(() => {
+    try {
+      VideoComponent.current = require('react-native-video').default;
+    } catch (e) {
+      console.warn('react-native-video not available in LiveScreen');
+    }
+  }, []);
 
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [selectedLive, setSelectedLive] = useState<LiveSession | null>(null);
@@ -282,8 +290,8 @@ const LiveScreen = () => {
 
   return (
     <View className="flex-1 bg-black">
-      {selectedLive.stream_url ? (
-        <Video
+      {selectedLive.stream_url && VideoComponent.current ? (
+        <VideoComponent.current
           source={{ uri: selectedLive.stream_url }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"

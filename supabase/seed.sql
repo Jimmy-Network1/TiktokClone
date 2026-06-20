@@ -59,25 +59,25 @@ VALUES
   (
     '11111111-1111-1111-1111-111111111111',
     'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lit-room-dancing-41743-large.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     'https://images.pexels.com/photos/3532540/pexels-photo-3532540.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    'Neon vibes only! 💃✨ Danser toute la nuit dans ma bulle. #Neon #Dance #Vibes #G4',
+    'Neon vibes only! Danser toute la nuit dans ma bulle. #Neon #Dance #Vibes #G4',
     now() - interval '2 hours'
   ),
   (
     '22222222-2222-2222-2222-222222222222',
     'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
-    'https://assets.mixkit.co/videos/preview/mixkit-skater-doing-tricks-in-a-park-42290-large.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     'https://images.pexels.com/photos/1651166/pexels-photo-1651166.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    'Nouvelle figure aujourd''hui ! 🛹 Le skate c''est la vie. #Skate #Sport #Animation #Sunset',
+    'Nouvelle figure aujourd''hui ! Le skate c''est la vie. #Skate #Sport #Animation #Sunset',
     now() - interval '1 hour'
   ),
   (
     '33333333-3333-3333-3333-333333333333',
     'c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f',
-    'https://assets.mixkit.co/videos/preview/mixkit-woman-holding-a-sparkler-at-night-42299-large.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     'https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    'Briller même dans le noir. 🎆 Le pouvoir d''une étincelle. #Sparkler #Night #Art #Vibes',
+    'Briller meme dans le noir. Le pouvoir d''une etincelle. #Sparkler #Night #Art #Vibes',
     now()
   );
 

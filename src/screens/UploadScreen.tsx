@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
-import Video from 'react-native-video';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import AuthWall from '../components/AuthWall';
@@ -17,6 +16,15 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [VideoComponent, setVideoComponent] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      setVideoComponent(require('react-native-video').default);
+    } catch (e) {
+      console.warn('react-native-video not available in UploadScreen');
+    }
+  }, []);
   
   // Autocut configuration
   const [duration, setDuration] = useState(0);
@@ -207,21 +215,22 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
             <View className="mb-6">
               {/* Live Preview Container */}
               <View className="w-full h-80 bg-zinc-950 rounded-3xl overflow-hidden relative border border-white/10">
-                <Video
-                  ref={videoPlayerRef}
-                  source={{ uri: selectedAsset.uri }}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="contain"
-                  repeat
-                  muted
-                  onLoad={handleVideoLoad}
-                  onProgress={(data) => {
-                    // Loop within cutRange to show Autocut in preview
-                    if (duration > 30 && data.currentTime >= cutRange.end) {
-                      videoPlayerRef.current?.seek(cutRange.start);
-                    }
-                  }}
-                />
+                {VideoComponent && (
+                  <VideoComponent
+                    ref={videoPlayerRef}
+                    source={{ uri: selectedAsset.uri }}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="contain"
+                    repeat
+                    muted
+                    onLoad={handleVideoLoad}
+                    onProgress={(data: any) => {
+                      if (duration > 30 && data.currentTime >= cutRange.end) {
+                        videoPlayerRef.current?.seek(cutRange.start);
+                      }
+                    }}
+                  />
+                )}
                 
                 {/* Reset video picker button */}
                 <TouchableOpacity 

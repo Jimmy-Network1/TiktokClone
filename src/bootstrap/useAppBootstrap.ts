@@ -12,7 +12,7 @@ export const useAppBootstrap = () => {
 
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('Le serveur ne répond pas (Timeout)')), 8000);
+      timeoutId = setTimeout(() => reject(new Error('Timeout')), 4000);
     });
 
     try {
@@ -20,11 +20,12 @@ export const useAppBootstrap = () => {
       await Promise.race([authPromise, timeoutPromise]);
       setAuthReady(true);
     } catch (err: any) {
-      console.error('Supabase auth initialization error:', err.message || err);
-      if (err.message?.includes('Timeout') || err.message?.includes('Network')) {
+      const msg = err?.message || String(err);
+      console.error('Supabase auth initialization error:', msg);
+      // On laisse passer l'utilisateur même si l'auth échoue (mode invité)
+      setAuthReady(true);
+      if (msg.includes('Timeout') || msg.includes('Network')) {
         setError('Erreur de connexion. Vérifiez votre réseau.');
-      } else {
-        setAuthReady(true);
       }
     } finally {
       if (timeoutId) {

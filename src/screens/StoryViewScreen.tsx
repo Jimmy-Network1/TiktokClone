@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { X } from 'lucide-react-native';
-import Video from 'react-native-video';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, runOnJS } from 'react-native-reanimated';
 import { StoryCreator } from '../components/Stories';
 
@@ -35,9 +34,18 @@ const StoryViewScreen: React.FC = () => {
   const route = useRoute<any>();
   const { creator } = route.params as { creator: StoryCreator };
   const stories = creator.stories;
+  const VideoComponent = useRef<any>(null);
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    try {
+      VideoComponent.current = require('react-native-video').default;
+    } catch (e) {
+      console.warn('react-native-video not available in StoryViewScreen');
+    }
+  }, []);
   
   const currentStory = stories[currentIndex];
   const progress = useSharedValue(0);
@@ -104,14 +112,14 @@ const StoryViewScreen: React.FC = () => {
         style={StyleSheet.absoluteFill}
         className="justify-center items-center"
       >
-        {currentStory.media_type === 'video' ? (
-          <Video
+        {currentStory.media_type === 'video' && VideoComponent.current ? (
+          <VideoComponent.current
             source={{ uri: currentStory.media_url }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
             paused={loading}
             onLoad={() => setLoading(false)}
-            onBuffer={({ isBuffering }) => setLoading(isBuffering)}
+            onBuffer={({ isBuffering }: any) => setLoading(isBuffering)}
           />
         ) : (
           <Image

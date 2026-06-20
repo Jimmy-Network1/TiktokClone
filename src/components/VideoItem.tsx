@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Image, Modal } from 'react-native';
-import Video from 'react-native-video';
-import { Heart, MessageCircle, Share2, Music2, Play, Pause, Bookmark, Folder } from 'lucide-react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Image } from 'react-native';
+import { Heart, MessageCircle, Share2, Music2, Play, Pause } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import Animated, { 
@@ -25,15 +24,6 @@ interface VideoItemProps {
   shouldPreload?: boolean;
 }
 
-const VIDEO_BUFFER_CONFIG = {
-  minBufferMs: 8000,
-  maxBufferMs: 20000,
-  bufferForPlaybackMs: 750,
-  bufferForPlaybackAfterRebufferMs: 1500,
-  backBufferDurationMs: 120000,
-  cacheSizeMB: 256,
-};
-
 const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = false }) => {
   const { session } = useAuth();
   const isFocused = useIsFocused();
@@ -44,11 +34,15 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [videoReady, setVideoReady] = useState(false);
   const lastTap = useRef<number>(0);
   const sourceUri = typeof video?.url === 'string' ? video.url.trim() : '';
   const thumbnailUri = typeof video?.thumbnailUrl === 'string' ? video.thumbnailUrl.trim() : '';
   const safeUsername = video?.user || 'G4_User';
   const shouldMountVideo = !!sourceUri && (isActive || shouldPreload);
+
+  const VideoComponent = useRef<any>(null);
+  const [hasVideoModule, setHasVideoModule] = useState(true);
   
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
@@ -57,16 +51,31 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
   const pauseOpacity = useSharedValue(0);
 
   useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 3000, easing: Easing.linear }),
-      -1,
-      false
-    );
-  }, [rotation]);
+    try {
+      const VideoModule = require('react-native-video').default;
+      VideoComponent.current = VideoModule;
+      setHasVideoModule(true);
+    } catch (e) {
+      console.warn('react-native-video module not available, using fallback');
+      setHasVideoModule(false);
+      setPlaybackError('Mode démo');
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasVideoModule) {
+      rotation.value = withRepeat(
+        withTiming(360, { duration: 3000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    }
+  }, [rotation, hasVideoModule]);
 
   useEffect(() => {
     setPlaybackError(null);
-    if (!shouldMountVideo) {
+    if (!shouldMountVideo || !hasVideoModule) {
       setIsLoading(false);
       setProgress(0);
       return;
@@ -75,7 +84,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
     if (isActive) {
       setIsLoading(true);
     }
-  }, [isActive, shouldMountVideo, sourceUri]);
+  }, [isActive, shouldMountVideo, sourceUri, hasVideoModule]);
 
   const diskStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
@@ -224,13 +233,9 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
           <Image source={{ uri: thumbnailUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
 
-        {shouldMountVideo && (
-          <Video
-            source={{
-              uri: sourceUri,
-              minLoadRetryCount: 2,
-              bufferConfig: VIDEO_BUFFER_CONFIG,
-            }}
+        {shouldMountVideo && hasVideoModule && VideoComponent.current && (
+          <VideoComponent.current
+            source={{ uri: sourceUri }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
             repeat
@@ -244,15 +249,15 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
               setIsLoading(false);
             }}
             onReadyForDisplay={() => setIsLoading(false)}
-            onBuffer={({ isBuffering }) => {
+            onBuffer={({ isBuffering }: any) => {
               if (isActive) setIsLoading(isBuffering);
             }}
-            onError={(error) => {
+            onError={(error: any) => {
               console.error('Video playback error:', video?.id, error);
               setPlaybackError('Lecture impossible');
               setIsLoading(false);
             }}
-            onProgress={({ currentTime, playableDuration }) => {
+            onProgress={({ currentTime, playableDuration }: any) => {
               if (playableDuration > 0) setProgress(currentTime / playableDuration);
             }}
             poster={thumbnailUri || undefined}

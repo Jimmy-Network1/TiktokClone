@@ -24,9 +24,9 @@ export type FeedMode = 'for_you' | 'following' | 'hashtag';
 const MOCK_VIDEOS: Video[] = [
   {
     id: 'mock-1',
-    url: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lit-room-dancing-41743-large.mp4',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     thumbnailUrl: 'https://images.pexels.com/photos/3532540/pexels-photo-3532540.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    description: 'Bienvenue sur G4 ! 🚀 Le futur du contenu court est ici. #G4 #NextGen #Fun #Revolution',
+    description: 'Bienvenue sur G4 ! Le futur du contenu court est ici. #G4 #NextGen #Fun #Revolution',
     userId: 'system',
     user: 'G4_Official',
     fullName: 'G4 Team',
@@ -38,9 +38,9 @@ const MOCK_VIDEOS: Video[] = [
   },
   {
     id: 'mock-2',
-    url: 'https://assets.mixkit.co/videos/preview/mixkit-skater-doing-tricks-in-a-park-42290-large.mp4',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     thumbnailUrl: 'https://images.pexels.com/photos/1651166/pexels-photo-1651166.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    description: 'Nouvelle figure aujourd\'hui ! 🛹 Le skate c\'est la vie. #Skate #Sport #Animation #Sunset',
+    description: 'Nouvelle figure aujourd\'hui ! Le skate c\'est la vie. #Skate #Sport #Animation #Sunset',
     userId: 'system',
     user: 'skate_master',
     fullName: 'Alex Skate',
@@ -52,9 +52,9 @@ const MOCK_VIDEOS: Video[] = [
   },
   {
     id: 'mock-3',
-    url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-holding-a-sparkler-at-night-42299-large.mp4',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     thumbnailUrl: 'https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    description: 'Briller même dans le noir. 🎆 Le pouvoir d\'une étincelle. #Sparkler #Night #Art #Vibes',
+    description: 'Briller même dans le noir. Le pouvoir d\'une étincelle. #Sparkler #Night #Art #Vibes',
     userId: 'system',
     user: 'travel_guru',
     fullName: 'Sophia Travel',
@@ -63,7 +63,35 @@ const MOCK_VIDEOS: Video[] = [
     comments: [{ id: 'c4' }],
     bookmarks: [],
     shares: '8',
-  }
+  },
+  {
+    id: 'mock-4',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+    thumbnailUrl: 'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
+    description: 'En voiture ! Les plus belles routes vous attendent. #RoadTrip #Adventure #Freedom',
+    userId: 'system',
+    user: 'road_tripper',
+    fullName: 'Max Road',
+    avatarUrl: 'https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200',
+    likes: [{ user_id: '1' }, { user_id: '3' }],
+    comments: [{ id: 'c7' }],
+    bookmarks: [],
+    shares: '5',
+  },
+  {
+    id: 'mock-5',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+    thumbnailUrl: 'https://images.pexels.com/photos/15286/pexels-photo.jpg?auto=compress&cs=tinysrgb&dpr=1&w=400',
+    description: 'Les moments les plus drôles de la semaine ! #Funny #Comedy #LOL',
+    userId: 'system',
+    user: 'comedy_gold',
+    fullName: 'Lola Rire',
+    avatarUrl: 'https://images.pexels.com/photos/432059/pexels-photo-432059.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200',
+    likes: [{ user_id: '2' }, { user_id: '3' }],
+    comments: [{ id: 'c12' }],
+    bookmarks: [],
+    shares: '18',
+  },
 ];
 
 export const useVideos = (

@@ -38,21 +38,38 @@ const Stories: React.FC = () => {
       const now = new Date();
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-      // 1. Récupérer les stories réelles
-      const { data: dbStories, error: storiesError } = await supabase
-        .from('stories')
-        .select(`
-          id,
-          media_url,
-          media_type,
-          user_id,
-          created_at,
-          profiles (username, avatar_url)
-        `)
-        .gt('created_at', yesterday)
-        .order('created_at', { ascending: true });
+      let dbStories: any[] | null = null;
+      let activeLives: any[] | null = null;
 
-      if (storiesError) throw storiesError;
+      try {
+        const result = await supabase
+          .from('stories')
+          .select(`
+            id,
+            media_url,
+            media_type,
+            user_id,
+            created_at,
+            profiles (username, avatar_url)
+          `)
+          .gt('created_at', yesterday)
+          .order('created_at', { ascending: true });
+        dbStories = result.data;
+        if (result.error) throw result.error;
+      } catch (e) {
+        console.warn('Stories fetch error (non-blocking):', e);
+      }
+
+      try {
+        const result = await supabase
+          .from('live_sessions')
+          .select('id, host_id')
+          .eq('is_active', true);
+        activeLives = result.data;
+        if (result.error) throw result.error;
+      } catch (e) {
+        console.warn('Live sessions fetch error (non-blocking):', e);
+      }
 
       // Récupérer les lives actifs
       const { data: activeLives } = await supabase
@@ -96,14 +113,20 @@ const Stories: React.FC = () => {
 
       const realCreators = Array.from(groupsMap.values());
 
-      // 2. Récupérer des profils mockés en compléments (pour le design premium)
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .limit(10);
+      let profiles: any[] | null = null;
+      try {
+        const result = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .limit(10);
+        profiles = result.data;
+        if (result.error) throw result.error;
+      } catch (e) {
+        console.warn('Profiles fetch error (non-blocking):', e);
+      }
 
       const mockCreators: StoryCreator[] = [];
-      if (!profilesError && profiles) {
+      if (profiles) {
         profiles.forEach((p, index) => {
           if (p.id !== session?.user?.id && !groupsMap.has(p.id)) {
             mockCreators.push({
