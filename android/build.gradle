@@ -6,6 +6,7 @@ buildscript {
         targetSdkVersion = 34
         kotlinVersion = "1.9.22"
         media3Version = "1.8.0"
+        ndkVersion = "27.0.12077973"
         }
     repositories {
         google()
