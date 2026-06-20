@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import Logo from '../components/Logo';
+import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationBanner from '../components/NotificationBanner';
 import StartupIssueBanner from '../components/StartupIssueBanner';
 import { useNotifications } from '../hooks/useNotifications';
@@ -65,18 +66,20 @@ const AppShell: React.FC<AppShellProps> = ({ authReady, error, initAuth }) => {
         </View>
       )}
       <StartupIssueBanner />
-      <Suspense
-        fallback={
-          <View className="flex-1 items-center justify-center bg-black">
-            <Logo size="large" />
-            <ActivityIndicator size="small" color="#2AF5FF" style={{ marginTop: 20 }} />
-          </View>
-        }
-      >
-        <NavigationContainer>
-          <RootNavigation />
-        </NavigationContainer>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense
+          fallback={
+            <View className="flex-1 items-center justify-center bg-black">
+              <Logo size="large" />
+              <ActivityIndicator size="small" color="#2AF5FF" style={{ marginTop: 20 }} />
+            </View>
+          }
+        >
+          <NavigationContainer>
+            <RootNavigation />
+          </NavigationContainer>
+        </Suspense>
+      </ErrorBoundary>
       <NotificationBanner notification={latestNotification} onClear={clearNotification} />
     </>
   );

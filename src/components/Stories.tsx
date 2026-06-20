@@ -71,12 +71,6 @@ const Stories: React.FC = () => {
         console.warn('Live sessions fetch error (non-blocking):', e);
       }
 
-      // Récupérer les lives actifs
-      const { data: activeLives } = await supabase
-        .from('live_sessions')
-        .select('id, host_id')
-        .eq('is_active', true);
-
       const liveHostIds = new Set((activeLives || []).map(l => l.host_id));
       setLiveSessionByHost(
         Object.fromEntries((activeLives || []).map(l => [l.host_id, l.id])),

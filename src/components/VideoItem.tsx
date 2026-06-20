@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Image } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Image, Vibration } from 'react-native';
 import { Heart, MessageCircle, Share2, Music2, Play, Pause } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
@@ -44,6 +44,23 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
   const VideoComponent = useRef<any>(null);
   const [hasVideoModule, setHasVideoModule] = useState(true);
   
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isActive && isLoading && !playbackError) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        setPlaybackError('Temps de chargement dépassé');
+        setIsLoading(false);
+      }, 15000);
+    }
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
+  }, [isActive, isLoading, playbackError]);
+
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
   const rotation = useSharedValue(0);
@@ -119,6 +136,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
   };
 
   const triggerHeartAnimation = () => {
+    Vibration.vibrate(10);
     heartScale.value = 0;
     heartOpacity.value = 1;
     heartScale.value = withSequence(
@@ -289,10 +307,10 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
       )}
 
       {isActive && playbackError && (
-        <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/40 px-8">
+        <Pressable onPress={() => { setPlaybackError(null); setIsLoading(true); }} style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/40 px-8">
           <Text className="text-white text-base font-bold text-center">{playbackError}</Text>
-          <Text className="text-zinc-400 text-xs text-center mt-2">Passez à la vidéo suivante ou réessayez plus tard.</Text>
-        </View>
+          <Text className="text-zinc-400 text-xs text-center mt-2">Appuyez pour réessayer</Text>
+        </Pressable>
       )}
 
       <View style={StyleSheet.absoluteFill} pointerEvents="none" className="items-center justify-center">

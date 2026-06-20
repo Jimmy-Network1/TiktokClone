@@ -1,98 +1,59 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { AlertCircle, RefreshCw } from 'lucide-react-native';
-import { recordRuntimeIssue } from '../lib/runtimeDiagnostics';
+import { View, Text, TouchableOpacity } from 'react-native';
 
-interface Props {
+type Props = {
   children: ReactNode;
-}
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+};
 
-interface State {
+type State = {
   hasError: boolean;
   error: Error | null;
-}
+};
 
-class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null
-  };
+export default class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
-    recordRuntimeIssue({
-      source: 'boundary',
-      fatal: false,
-      message: error.message,
-      stack: error.stack,
-    }).catch(() => undefined);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn('ErrorBoundary caught:', error.message);
+    this.props.onError?.(error, errorInfo);
   }
 
-  private handleReset = () => {
+  handleRetry = () => {
     this.setState({ hasError: false, error: null });
   };
 
-  public render() {
+  render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
       return (
-        <View style={styles.container}>
-          <AlertCircle color="#FE2C55" size={64} />
-          <Text style={styles.title}>Oups ! Une petite erreur.</Text>
-          <Text style={styles.message}>
-             L'application G4 a rencontré un problème inattendu. Ne vous inquiétez pas, vos données sont en sécurité.
+        <View className="flex-1 items-center justify-center bg-black px-8">
+          <Text className="text-white text-lg font-bold mb-2">Oups !</Text>
+          <Text className="text-zinc-400 text-sm text-center mb-6">
+            Un problème est survenu. Pas de panique, ça arrive même aux meilleurs.
           </Text>
-          <TouchableOpacity style={styles.button} onPress={this.handleReset}>
-            <RefreshCw color="white" size={20} style={{ marginRight: 10 }} />
-            <Text style={styles.buttonText}>Relancer l'interface</Text>
+          {this.state.error && (
+            <Text className="text-zinc-600 text-xs mb-6 text-center" numberOfLines={2}>
+              {this.state.error.message}
+            </Text>
+          )}
+          <TouchableOpacity
+            onPress={this.handleRetry}
+            className="bg-[#2AF5FF] px-8 py-3 rounded-full"
+          >
+            <Text className="text-black font-bold text-sm">Réessayer</Text>
           </TouchableOpacity>
         </View>
       );
     }
-
     return this.props.children;
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 30,
-  },
-  title: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginTop: 20,
-    textAlign: 'center',
-  },
-  message: {
-    color: '#888',
-    fontSize: 14,
-    marginTop: 10,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  button: {
-    backgroundColor: '#FE2C55',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 25,
-    paddingVertical: 15,
-    borderRadius: 30,
-    marginTop: 30,
-  },
-  buttonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});
-
-export default ErrorBoundary;

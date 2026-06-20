@@ -56,25 +56,38 @@ jobs:
             echo "type=release" >> $GITHUB_OUTPUT
           fi
 
+      - name: Verify debug keystore
+        run: |
+          if [ ! -f "android/app/debug.keystore" ]; then
+            echo "Generating debug keystore..."
+            keytool -genkey -v -keystore android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          echo "Debug keystore OK"
+
       - name: Build APK (${{ steps.build_type.outputs.type }})
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assemble$(echo "${{ steps.build_type.outputs.type }}" | sed 's/.*/\u&/')
+          ./gradlew assemble$(echo "${{ steps.build_type.outputs.type }}" | sed 's/.*/\u&/') --no-daemon
 
-      - name: Rename Release APK
-        if: steps.build_type.outputs.type == 'release'
+      - name: Rename APK
         run: |
-          # Copier l'APK signé (avec le debug.keystore) vers un nom stable
-          APK_DIR="android/app/build/outputs/apk/release"
-          cp $APK_DIR/*.apk $APK_DIR/G4-Final.apk
+          TYPE=${{ steps.build_type.outputs.type }}
+          APK_DIR="android/app/build/outputs/apk/$TYPE"
+          # Find the first APK (app-release.apk, app-debug.apk, etc.)
+          APK_FILE=$(ls $APK_DIR/*.apk 2>/dev/null | head -1)
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" "$APK_DIR/G4-Final.apk"
+            echo "APK renamed to G4-Final.apk in $APK_DIR"
+          else
+            echo "No APK found in $APK_DIR"
+            ls -la "$APK_DIR/" 2>/dev/null || echo "Directory does not exist"
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: G4-${{ steps.build_type.outputs.type == 'release' && 'Release' || 'Debug' }}-APK
-          path: |
-            android/app/build/outputs/apk/release/G4-Final.apk
-            android/app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/**/G4-Final.apk
           compression-level: 0
           if-no-files-found: error
