@@ -3,22 +3,19 @@ import { supabase } from '../lib/supabase';
 
 export interface Video {
   id: string;
-  video_url: string;
-  thumbnail_url: string | null;
-  caption: string;
-  user_id: string;
-  profiles: {
-    id?: string;
-    username: string;
-    full_name?: string | null;
-    avatar_url: string;
-    bio?: string | null;
-  };
+  url: string;
+  thumbnailUrl: string | null;
+  description: string;
+  userId: string;
+  user: string;
+  fullName: string;
+  avatarUrl: string | null;
   likes: { user_id: string }[];
   comments: { id: string }[];
-  bookmarks?: { user_id: string }[];
-  cut_start?: number | null;
-  cut_end?: number | null;
+  bookmarks: { user_id: string }[];
+  shares: string;
+  cutStart?: number | null;
+  cutEnd?: number | null;
 }
 
 const PUBLIC_FEED_USERNAMES = ['tiktokclone', 'tiktok_fr', 'tiktok_africa', 'demo'];
@@ -27,36 +24,45 @@ export type FeedMode = 'for_you' | 'following' | 'hashtag';
 const MOCK_VIDEOS: Video[] = [
   {
     id: 'mock-1',
-    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lit-room-dancing-41743-large.mp4',
-    thumbnail_url: 'https://images.pexels.com/photos/3532540/pexels-photo-3532540.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    caption: 'Bienvenue sur G4 ! 🚀 Le futur du contenu court est ici. #G4 #NextGen #Fun #Revolution',
-    user_id: 'system',
-    profiles: { username: 'G4_Official', avatar_url: 'https://images.pexels.com/photos/1382731/pexels-photo-1382731.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200', full_name: 'G4 Team' },
+    url: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lit-room-dancing-41743-large.mp4',
+    thumbnailUrl: 'https://images.pexels.com/photos/3532540/pexels-photo-3532540.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
+    description: 'Bienvenue sur G4 ! 🚀 Le futur du contenu court est ici. #G4 #NextGen #Fun #Revolution',
+    userId: 'system',
+    user: 'G4_Official',
+    fullName: 'G4 Team',
+    avatarUrl: 'https://images.pexels.com/photos/1382731/pexels-photo-1382731.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200',
     likes: [{ user_id: '1' }, { user_id: '2' }, { user_id: '3' }],
     comments: [{ id: 'c1' }, { id: 'c2' }],
     bookmarks: [],
+    shares: '42',
   },
   {
     id: 'mock-2',
-    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-skater-doing-tricks-in-a-park-42290-large.mp4',
-    thumbnail_url: 'https://images.pexels.com/photos/1651166/pexels-photo-1651166.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    caption: 'Nouvelle figure aujourd\'hui ! 🛹 Le skate c\'est la vie. #Skate #Sport #Animation #Sunset',
-    user_id: 'system',
-    profiles: { username: 'skate_master', avatar_url: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200', full_name: 'Alex Skate' },
+    url: 'https://assets.mixkit.co/videos/preview/mixkit-skater-doing-tricks-in-a-park-42290-large.mp4',
+    thumbnailUrl: 'https://images.pexels.com/photos/1651166/pexels-photo-1651166.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
+    description: 'Nouvelle figure aujourd\'hui ! 🛹 Le skate c\'est la vie. #Skate #Sport #Animation #Sunset',
+    userId: 'system',
+    user: 'skate_master',
+    fullName: 'Alex Skate',
+    avatarUrl: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200',
     likes: [{ user_id: '1' }],
     comments: [{ id: 'c10' }],
     bookmarks: [],
+    shares: '12',
   },
   {
     id: 'mock-3',
-    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-holding-a-sparkler-at-night-42299-large.mp4',
-    thumbnail_url: 'https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
-    caption: 'Briller même dans le noir. 🎆 Le pouvoir d\'une étincelle. #Sparkler #Night #Art #Vibes',
-    user_id: 'system',
-    profiles: { username: 'travel_guru', avatar_url: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200', full_name: 'Sophia Travel' },
+    url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-holding-a-sparkler-at-night-42299-large.mp4',
+    thumbnailUrl: 'https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=400',
+    description: 'Briller même dans le noir. 🎆 Le pouvoir d\'une étincelle. #Sparkler #Night #Art #Vibes',
+    userId: 'system',
+    user: 'travel_guru',
+    fullName: 'Sophia Travel',
+    avatarUrl: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=200',
     likes: [{ user_id: '1' }, { user_id: '2' }],
     comments: [{ id: 'c4' }],
     bookmarks: [],
+    shares: '8',
   }
 ];
 
@@ -86,6 +92,15 @@ export const useVideos = (
         setLoadingMore(true);
       }
       setError(null);
+
+      // Never block the first paint on a network round-trip.
+      // If we have no feed yet, seed a local demo feed immediately and let
+      // the remote request replace it when it comes back.
+      if (currentOffset === 0) {
+        setVideos(prev => (prev.length > 0 ? prev : MOCK_VIDEOS));
+        setLoading(false);
+      }
+
       let targetUserIds: string[] | null = null;
       let data: any[] | null = null;
       let fetchError: any = null;
@@ -190,9 +205,9 @@ export const useVideos = (
             url: item.video_url || '',
             thumbnailUrl: item.thumbnail_url || '',
             userId: item.user_id || 'system',
-            user: profile?.username || 'G4_User',
-            fullName: profile?.full_name || 'G4 User',
-            avatarUrl: profile?.avatar_url || null,
+            user: profile?.username || item.username || 'G4_User',
+            fullName: profile?.full_name || item.full_name || item.username || 'G4 User',
+            avatarUrl: profile?.avatar_url || item.avatar_url || null,
             description: item.caption || '',
             likes: item.likes || [],
             comments: item.comments || [],
@@ -261,7 +276,7 @@ export const useVideos = (
       let finalVideos = normalizedVideos;
       if (isGuest) {
         finalVideos = normalizedVideos.filter(video => {
-          const username = video.profiles?.username?.toLowerCase() || '';
+          const username = video.user?.toLowerCase() || '';
           return PUBLIC_FEED_USERNAMES.includes(username);
         });
         if (finalVideos.length === 0 && currentOffset === 0) {

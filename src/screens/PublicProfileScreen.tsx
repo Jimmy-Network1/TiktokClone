@@ -307,9 +307,13 @@ const PublicProfileScreen = () => {
             className="border-[0.5px] border-black bg-zinc-900 overflow-hidden relative"
             onPress={() => navigation.navigate('HashtagFeed', { initialVideoId: item.id, mode: 'for_you' })}
           >
-            <View className="flex-1 items-center justify-center">
-               <Play color="rgba(255,255,255,0.2)" size={40} />
-            </View>
+            {item.thumbnail_url ? (
+              <Image source={{ uri: item.thumbnail_url }} className="h-full w-full" resizeMode="cover" />
+            ) : (
+              <View className="flex-1 items-center justify-center">
+                 <Play color="rgba(255,255,255,0.2)" size={40} />
+              </View>
+            )}
              <View className="absolute bottom-1 left-1 flex-row items-center">
                 <Play color="white" size={12} fill="white" />
                 <Text className="text-white text-[10px] font-bold ml-1">

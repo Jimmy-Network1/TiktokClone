@@ -4,6 +4,24 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react-native';
 import { View } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import FeedScreen from '../screens/FeedScreen';
+import DiscoverScreen from '../screens/DiscoverScreen';
+import UploadScreen from '../screens/UploadScreen';
+import InboxScreen from '../screens/InboxScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import AuthScreen from '../screens/AuthScreen';
+import CommentsScreen from '../screens/CommentsScreen';
+import PublicProfileScreen from '../screens/PublicProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import ConversationsScreen from '../screens/ConversationsScreen';
+import ChatScreen from '../screens/ChatScreen';
+import LiveScreen from '../screens/LiveScreen';
+import HashtagScreen from '../screens/HashtagScreen';
+import StoryViewScreen from '../screens/StoryViewScreen';
+import HostLiveScreen from '../screens/HostLiveScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import CollectionsScreen from '../screens/CollectionsScreen';
+import CollectionDetailScreen from '../screens/CollectionDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -25,25 +43,6 @@ const PlusIcon = ({ focused }: { focused: boolean }) => (
   </View>
 );
 
-const getFeedScreen = () => require('../screens/FeedScreen').default;
-const getDiscoverScreen = () => require('../screens/DiscoverScreen').default;
-const getUploadScreen = () => require('../screens/UploadScreen').default;
-const getInboxScreen = () => require('../screens/InboxScreen').default;
-const getProfileScreen = () => require('../screens/ProfileScreen').default;
-const getAuthScreen = () => require('../screens/AuthScreen').default;
-const getCommentsScreen = () => require('../screens/CommentsScreen').default;
-const getPublicProfileScreen = () => require('../screens/PublicProfileScreen').default;
-const getEditProfileScreen = () => require('../screens/EditProfileScreen').default;
-const getConversationsScreen = () => require('../screens/ConversationsScreen').default;
-const getChatScreen = () => require('../screens/ChatScreen').default;
-const getLiveScreen = () => require('../screens/LiveScreen').default;
-const getHashtagScreen = () => require('../screens/HashtagScreen').default;
-const getStoryViewScreen = () => require('../screens/StoryViewScreen').default;
-const getHostLiveScreen = () => require('../screens/HostLiveScreen').default;
-const getSettingsScreen = () => require('../screens/SettingsScreen').default;
-const getCollectionsScreen = () => require('../screens/CollectionsScreen').default;
-const getCollectionDetailScreen = () => require('../screens/CollectionDetailScreen').default;
-
 const MainTabs: React.FC<any> = ({ navigation }) => {
   const { session } = useAuth();
 
@@ -52,7 +51,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
       detachInactiveScreens
       screenOptions={{
         headerShown: false,
-        lazy: true,
+        lazy: false,
         tabBarStyle: { 
           backgroundColor: '#000', 
           borderTopWidth: 0.5, 
@@ -67,7 +66,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
     >
       <Tab.Screen
         name="Home"
-        getComponent={getFeedScreen}
+        component={FeedScreen}
         options={{
           tabBarIcon: HomeIcon,
           tabBarLabel: 'Accueil'
@@ -75,7 +74,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
       />
       <Tab.Screen
         name="Discover"
-        getComponent={getDiscoverScreen}
+        component={DiscoverScreen}
         options={{
           tabBarIcon: DiscoverIcon,
           tabBarLabel: 'Découvrir'
@@ -83,7 +82,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
       />
       <Tab.Screen
         name="Upload"
-        getComponent={getUploadScreen}
+        component={UploadScreen}
         options={{
           tabBarIcon: ({ focused }) => <PlusIcon focused={focused} />,
           tabBarLabel: () => null,
@@ -99,7 +98,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
       />
       <Tab.Screen
         name="Inbox"
-        getComponent={getInboxScreen}
+        component={InboxScreen}
         options={{
           tabBarIcon: InboxIcon,
           tabBarLabel: 'Boîte'
@@ -115,7 +114,7 @@ const MainTabs: React.FC<any> = ({ navigation }) => {
       />
       <Tab.Screen
         name="Profile"
-        getComponent={getProfileScreen}
+        component={ProfileScreen}
         options={{
           tabBarIcon: ProfileIcon,
           tabBarLabel: 'Profil'
@@ -137,32 +136,32 @@ const RootNavigation = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainTabs} />
-      <Stack.Screen name="Auth" getComponent={getAuthScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="Auth" component={AuthScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen 
         name="Comments" 
-        getComponent={getCommentsScreen} 
+        component={CommentsScreen} 
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }} 
       />
-      <Stack.Screen name="PublicProfile" getComponent={getPublicProfileScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ animation: 'slide_from_right' }} />
       <Stack.Screen
         name="EditProfile"
-        getComponent={getEditProfileScreen}
+        component={EditProfileScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
-      <Stack.Screen name="Conversations" getComponent={getConversationsScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="Chat" getComponent={getChatScreen} options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="Live" getComponent={getLiveScreen} options={{ animation: 'fade' }} />
-      <Stack.Screen name="Hashtag" getComponent={getHashtagScreen} />
-      <Stack.Screen name="HashtagFeed" getComponent={getFeedScreen} />
+      <Stack.Screen name="Conversations" component={ConversationsScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="Live" component={LiveScreen} options={{ animation: 'fade' }} />
+      <Stack.Screen name="Hashtag" component={HashtagScreen} />
+      <Stack.Screen name="HashtagFeed" component={FeedScreen} />
       <Stack.Screen 
         name="StoryView" 
-        getComponent={getStoryViewScreen} 
+        component={StoryViewScreen} 
         options={{ presentation: 'transparentModal', animation: 'fade' }} 
       />
-      <Stack.Screen name="HostLive" getComponent={getHostLiveScreen} />
-      <Stack.Screen name="Settings" getComponent={getSettingsScreen} />
-      <Stack.Screen name="Collections" getComponent={getCollectionsScreen} />
-      <Stack.Screen name="CollectionDetail" getComponent={getCollectionDetailScreen} />
+      <Stack.Screen name="HostLive" component={HostLiveScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Collections" component={CollectionsScreen} />
+      <Stack.Screen name="CollectionDetail" component={CollectionDetailScreen} />
     </Stack.Navigator>
   );
 };

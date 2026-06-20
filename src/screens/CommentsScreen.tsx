@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Vibration,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
@@ -233,9 +232,6 @@ const CommentsScreen = () => {
           .from('comment_likes')
           .insert({ comment_id: commentId, user_id: currentUserId });
       }
-      try {
-        Vibration.vibrate(10);
-      } catch (e) {}
     } catch (error) {
       console.error('Error toggling comment like:', error);
       const rollbackCommentsState = (list: CommentItem[]) => {

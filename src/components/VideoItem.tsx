@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Vibration, Image, Modal } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View, Pressable, ActivityIndicator, Share, Image, Modal } from 'react-native';
 import Video from 'react-native-video';
 import { Heart, MessageCircle, Share2, Music2, Play, Pause, Bookmark, Folder } from 'lucide-react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -110,7 +110,6 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
   };
 
   const triggerHeartAnimation = () => {
-    try { Vibration.vibrate(50); } catch (e) {}
     heartScale.value = 0;
     heartOpacity.value = 1;
     heartScale.value = withSequence(
@@ -125,7 +124,6 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
     const newState = !isPaused;
     setIsPaused(newState);
     triggerPauseAnimation();
-    try { Vibration.vibrate(10); } catch (e) {}
   };
 
   const handleLike = async (isDoubleTap = false, x = 0, y = 0) => {
@@ -149,7 +147,6 @@ const VideoItem: React.FC<VideoItemProps> = ({ video, isActive, shouldPreload = 
 
     setLikes(nextLikes);
     if (isAddingLike) triggerHeartAnimation();
-    else try { Vibration.vibrate(20); } catch (e) {}
 
     try {
       if (!isAddingLike) {
