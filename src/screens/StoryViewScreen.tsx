@@ -4,10 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { X } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, runOnJS } from 'react-native-reanimated';
+import { VideoView, useVideoPlayer, useEvent } from 'react-native-video';
+import type { VideoPlayer } from 'react-native-video';
 import { StoryCreator } from '../components/Stories';
 
 const { width, height } = Dimensions.get('window');
-const STORY_DURATION = 5000; // 5 secondes par story
+const STORY_DURATION = 5000;
 
 const StoryProgressBar: React.FC<{
   index: number;
@@ -34,21 +36,48 @@ const StoryViewScreen: React.FC = () => {
   const route = useRoute<any>();
   const { creator } = route.params as { creator: StoryCreator };
   const stories = creator.stories;
-  const VideoComponent = useRef<any>(null);
-  
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    try {
-      VideoComponent.current = require('react-native-video').default;
-    } catch (e) {
-      console.warn('react-native-video not available in StoryViewScreen');
-    }
-  }, []);
-  
+
   const currentStory = stories[currentIndex];
   const progress = useSharedValue(0);
+
+  const isVideo = currentStory.media_type === 'video';
+
+  const player = useVideoPlayer(
+    isVideo ? { uri: currentStory.media_url } : { uri: '' },
+    useCallback((player: VideoPlayer) => {
+      player.loop = false;
+      player.muted = false;
+    }, []),
+  );
+
+  useEvent(player, 'onLoad', () => {
+    setLoading(false);
+  });
+
+  useEvent(player, 'onBuffer', (buffering) => {
+    if (isVideo) setLoading(buffering);
+  });
+
+  const playerRef = useRef(player);
+  playerRef.current = player;
+
+  useEffect(() => {
+    if (!isVideo) {
+      if (loading) {
+        setLoading(false);
+      }
+      return;
+    }
+    if (loading) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }, [loading, isVideo, player]);
+
   const startAnimation = () => {
     progress.value = 0;
     progress.value = withTiming(1, {
@@ -84,7 +113,6 @@ const StoryViewScreen: React.FC = () => {
       setLoading(true);
       setCurrentIndex(prev => prev - 1);
     } else {
-      // Recommencer la première story
       setLoading(true);
       setCurrentIndex(0);
     }
@@ -92,7 +120,6 @@ const StoryViewScreen: React.FC = () => {
 
   const handleTap = (evt: any) => {
     const x = evt.nativeEvent.locationX;
-    // Si on clique à gauche du tiers de l'écran, on va à la story précédente
     if (x < width / 3) {
       handlePrev();
     } else {
@@ -106,20 +133,17 @@ const StoryViewScreen: React.FC = () => {
 
   return (
     <View style={styles.container} className="bg-black">
-      <TouchableOpacity 
-        activeOpacity={1} 
-        onPress={handleTap} 
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={handleTap}
         style={StyleSheet.absoluteFill}
         className="justify-center items-center"
       >
-        {currentStory.media_type === 'video' && VideoComponent.current ? (
-          <VideoComponent.current
-            source={{ uri: currentStory.media_url }}
+        {isVideo ? (
+          <VideoView
+            player={player}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
-            paused={loading}
-            onLoad={() => setLoading(false)}
-            onBuffer={({ isBuffering }: any) => setLoading(isBuffering)}
           />
         ) : (
           <Image
@@ -131,15 +155,13 @@ const StoryViewScreen: React.FC = () => {
         )}
       </TouchableOpacity>
 
-      {loading && (
+      {loading && isVideo && (
         <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/30">
           <ActivityIndicator color="#FE2C55" size="large" />
         </View>
       )}
 
-      {/* Barre de navigation haute */}
       <SafeAreaView style={styles.headerContainer} className="px-4 pt-4">
-        {/* Lignes de progression de la Story */}
         <View className="flex-row space-x-1 mb-4">
           {stories.map((_, index) => (
             <View key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
@@ -148,7 +170,6 @@ const StoryViewScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Info Utilisateur */}
         <View className="flex-row justify-between items-center">
           <View className="flex-row items-center">
             <View className="w-9 h-9 rounded-full bg-zinc-800 items-center justify-center overflow-hidden border border-white/10 mr-3">
@@ -164,8 +185,8 @@ const StoryViewScreen: React.FC = () => {
             </View>
           </View>
 
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()} 
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             className="p-1 bg-black/30 rounded-full border border-white/5"
           >
             <X color="white" size={20} />

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { supabase } from '../lib/supabase';
@@ -7,6 +7,8 @@ import AuthWall from '../components/AuthWall';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../lib/config';
+import { VideoView, useVideoPlayer, useEvent } from 'react-native-video';
+import type { VideoPlayer } from 'react-native-video';
 
 interface UploadScreenProps {}
 
@@ -16,23 +18,46 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [VideoComponent, setVideoComponent] = useState<any>(null);
 
-  useEffect(() => {
-    try {
-      setVideoComponent(require('react-native-video').default);
-    } catch (e) {
-      console.warn('react-native-video not available in UploadScreen');
-    }
-  }, []);
-  
   // Autocut configuration
   const [duration, setDuration] = useState(0);
   const [cutRange, setCutRange] = useState({ start: 0, end: 30 });
   const [selectedPortion, setSelectedPortion] = useState<'start' | 'middle' | 'end'>('start');
-  
-  const videoPlayerRef = useRef<any>(null);
+
   const navigation = useNavigation<any>();
+
+  const selectedAsset = video?.assets?.[0];
+  const sourceUri = selectedAsset?.uri || '';
+
+  const player = useVideoPlayer(
+    sourceUri ? { uri: sourceUri } : { uri: '' },
+    useCallback((player: VideoPlayer) => {
+      player.loop = true;
+      player.muted = true;
+    }, []),
+  );
+
+  const handleVideoLoad = (data: { duration: number }) => {
+    const videoDuration = data.duration;
+    setDuration(videoDuration);
+
+    if (videoDuration > 30) {
+      handlePortionSelect('start', videoDuration);
+    } else {
+      setCutRange({ start: 0, end: videoDuration });
+    }
+  };
+
+  const playerRef = useRef(player);
+  playerRef.current = player;
+
+  useEvent(player, 'onLoad', handleVideoLoad);
+
+  useEvent(player, 'onProgress', (data) => {
+    if (duration > 30 && data.currentTime >= cutRange.end) {
+      playerRef.current.seekTo(cutRange.start);
+    }
+  });
 
   if (!session) {
     return (
@@ -63,44 +88,31 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
         Alert.alert('Fichier trop volumineux', 'La limite est de 50 Mo.');
         return;
       }
-      
+
       setVideo(result);
-      // Reset duration and cut range on new selection
       setDuration(0);
       setCutRange({ start: 0, end: 30 });
       setSelectedPortion('start');
     }
   };
 
-  const handleVideoLoad = (meta: { duration: number }) => {
-    const videoDuration = meta.duration;
-    setDuration(videoDuration);
-    
-    // Auto-calculate portions if video is longer than 30s
-    if (videoDuration > 30) {
-      handlePortionSelect('start', videoDuration);
-    } else {
-      setCutRange({ start: 0, end: videoDuration });
-    }
-  };
-
   const handlePortionSelect = (portion: 'start' | 'middle' | 'end', customDuration?: number) => {
     const activeDuration = customDuration || duration;
     setSelectedPortion(portion);
-    
+
     if (activeDuration <= 30) return;
 
     if (portion === 'start') {
       setCutRange({ start: 0, end: 30 });
-      videoPlayerRef.current?.seek(0);
+      playerRef.current.seekTo(0);
     } else if (portion === 'middle') {
       const start = Math.max(0, (activeDuration - 30) / 2);
       setCutRange({ start, end: start + 30 });
-      videoPlayerRef.current?.seek(start);
+      playerRef.current.seekTo(start);
     } else if (portion === 'end') {
       const start = Math.max(0, activeDuration - 30);
       setCutRange({ start, end: activeDuration });
-      videoPlayerRef.current?.seek(start);
+      playerRef.current.seekTo(start);
     }
   };
 
@@ -112,28 +124,25 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
 
     setUploading(true);
     setUploadProgress(0);
-    
+
     try {
       const asset = video.assets[0];
       if (!asset.uri) {
         throw new Error('Le chemin de la vidéo est introuvable.');
       }
 
-      // STEP: Pré-optimisation (Simulation de compression)
-      // Dans une app de prod, on utiliserait react-native-video-helper ici
-      setUploadProgress(0.1); 
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 1500)); // Temps de compression simulé
+      setUploadProgress(0.1);
+      await new Promise<void>(resolve => setTimeout(() => resolve(), 1500));
       setUploadProgress(0.2);
 
       const extension = asset.uri.split('.').pop() || 'mp4';
       const fileName = `${session?.user.id}-${Date.now()}.${extension}`;
       const filePath = `${session?.user.id}/${fileName}`;
 
-      // 1. Upload to Storage using XMLHttpRequest for real progress tracking
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/videos/${filePath}`);
-        
+
         xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
         xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
         xhr.setRequestHeader('Content-Type', asset.type || 'video/mp4');
@@ -169,12 +178,10 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
 
       setUploadProgress(1);
 
-      // 2. Get Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('videos')
         .getPublicUrl(filePath);
 
-      // 3. Save to Database with Autocut metadata
       const { error: dbError } = await supabase
         .from('videos')
         .insert({
@@ -200,8 +207,6 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
     }
   };
 
-  const selectedAsset = video?.assets?.[0];
-
   return (
     <SafeAreaView className="flex-1 bg-black" edges={['top']}>
       <KeyboardAvoidingView
@@ -210,30 +215,19 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContent} className="p-6">
           <Text className="text-3xl font-bold mb-6 text-white">Créer</Text>
-          
+
           {selectedAsset && selectedAsset.uri ? (
             <View className="mb-6">
-              {/* Live Preview Container */}
               <View className="w-full h-80 bg-zinc-950 rounded-3xl overflow-hidden relative border border-white/10">
-                {VideoComponent && (
-                  <VideoComponent
-                    ref={videoPlayerRef}
-                    source={{ uri: selectedAsset.uri }}
+                {sourceUri && (
+                  <VideoView
+                    player={player}
                     style={StyleSheet.absoluteFill}
                     resizeMode="contain"
-                    repeat
-                    muted
-                    onLoad={handleVideoLoad}
-                    onProgress={(data: any) => {
-                      if (duration > 30 && data.currentTime >= cutRange.end) {
-                        videoPlayerRef.current?.seek(cutRange.start);
-                      }
-                    }}
                   />
                 )}
-                
-                {/* Reset video picker button */}
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   onPress={pickVideo}
                   className="absolute bottom-4 right-4 bg-black/60 px-4 py-2 rounded-full border border-white/20"
                 >
@@ -241,14 +235,13 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Autocut UI Editor if video is longer than 30 seconds */}
               {duration > 30 ? (
                 <View className="mt-4 bg-zinc-950 p-4 rounded-2xl border border-white/5">
                   <Text className="text-[#FE2C55] font-black text-xs uppercase tracking-widest">✂️ Autocut Actif</Text>
                   <Text className="text-zinc-400 text-xs mt-1">
                     Durée totale : {Math.round(duration)}s. Choisissez les 30s à conserver :
                   </Text>
-                  
+
                   <View className="flex-row mt-3 space-x-2">
                     <TouchableOpacity
                       onPress={() => handlePortionSelect('start')}
@@ -279,7 +272,7 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
               )}
             </View>
           ) : (
-            <TouchableOpacity 
+            <TouchableOpacity
               className="w-full h-80 bg-zinc-950 border border-dashed border-white/20 rounded-3xl justify-center items-center mb-6"
               onPress={pickVideo}
             >

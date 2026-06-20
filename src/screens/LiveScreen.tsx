@@ -6,6 +6,8 @@ import { Heart, Radio, Send, UserPlus, Users, Video as VideoIcon, X } from 'luci
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { VideoView, useVideoPlayer, useEvent } from 'react-native-video';
+import type { VideoPlayer } from 'react-native-video';
 
 type LiveSession = {
   id: string;
@@ -34,15 +36,6 @@ const LiveScreen = () => {
   const route = useRoute<any>();
   const { session } = useAuth();
   const initialSessionId = route.params?.sessionId as string | undefined;
-  const VideoComponent = useRef<any>(null);
-
-  useEffect(() => {
-    try {
-      VideoComponent.current = require('react-native-video').default;
-    } catch (e) {
-      console.warn('react-native-video not available in LiveScreen');
-    }
-  }, []);
 
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [selectedLive, setSelectedLive] = useState<LiveSession | null>(null);
@@ -54,6 +47,21 @@ const LiveScreen = () => {
 
   const activeSessionId = selectedLive?.id || initialSessionId || null;
   const hostProfile = useMemo(() => getHostProfile(selectedLive), [selectedLive]);
+
+  const hasStreamUrl = !!selectedLive?.stream_url;
+
+  const player = useVideoPlayer(
+    hasStreamUrl ? { uri: selectedLive!.stream_url! } : { uri: '' },
+    useCallback((player: VideoPlayer) => {
+      player.loop = true;
+      player.playInBackground = false;
+      player.playWhenInactive = false;
+    }, []),
+  );
+
+  useEvent(player, 'onLoad', () => {
+    player.play();
+  });
 
   const fetchLiveSessions = useCallback(async () => {
     setLoadingLives(true);
@@ -290,14 +298,11 @@ const LiveScreen = () => {
 
   return (
     <View className="flex-1 bg-black">
-      {selectedLive.stream_url && VideoComponent.current ? (
-        <VideoComponent.current
-          source={{ uri: selectedLive.stream_url }}
+      {hasStreamUrl ? (
+        <VideoView
+          player={player}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
-          repeat
-          playInBackground={false}
-          playWhenInactive={false}
         />
       ) : (
         <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-zinc-950 px-8">
