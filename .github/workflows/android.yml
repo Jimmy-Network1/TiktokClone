@@ -59,7 +59,7 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "type=${{ github.event.inputs.build_type }}" >> $GITHUB_OUTPUT
           else
-            echo "type=release" >> $GITHUB_OUTPUT
+            echo "type=debug" >> $GITHUB_OUTPUT
           fi
 
       - name: Verify debug keystore
