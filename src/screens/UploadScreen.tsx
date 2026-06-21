@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 import { supabase } from '../lib/supabase';
@@ -9,6 +9,48 @@ import { useAuth } from '../hooks/useAuth';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../lib/config';
 import { VideoView, useVideoPlayer, useEvent } from 'react-native-video';
 import type { VideoPlayer } from 'react-native-video';
+
+interface UploadVideoContentRef {
+  seekTo: (time: number) => void;
+}
+
+const UploadVideoContent = forwardRef<UploadVideoContentRef, {
+  sourceUri: string;
+  onDuration: (duration: number) => void;
+  cutRange: { start: number; end: number };
+  duration: number;
+}>(({ sourceUri, onDuration, cutRange, duration }, ref) => {
+  const player = useVideoPlayer(
+    { uri: sourceUri },
+    useCallback((player: VideoPlayer) => {
+      player.loop = true;
+      player.muted = true;
+    }, []),
+  );
+
+  useEvent(player, 'onLoad', (data: any) => {
+    const videoDuration = data.duration || 0;
+    onDuration(videoDuration);
+  });
+
+  useEvent(player, 'onProgress', (data) => {
+    if (duration > 30 && data.currentTime >= cutRange.end) {
+      player.seekTo(cutRange.start);
+    }
+  });
+
+  useImperativeHandle(ref, () => ({
+    seekTo: (time: number) => player.seekTo(time),
+  }));
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      resizeMode="contain"
+    />
+  );
+});
 
 interface UploadScreenProps {}
 
@@ -25,39 +67,19 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
   const [selectedPortion, setSelectedPortion] = useState<'start' | 'middle' | 'end'>('start');
 
   const navigation = useNavigation<any>();
+  const playerRef = useRef<UploadVideoContentRef>(null);
 
   const selectedAsset = video?.assets?.[0];
   const sourceUri = selectedAsset?.uri || '';
 
-  const player = useVideoPlayer(
-    sourceUri ? { uri: sourceUri } : { uri: '' },
-    useCallback((player: VideoPlayer) => {
-      player.loop = true;
-      player.muted = true;
-    }, []),
-  );
-
-  const handleVideoLoad = (data: { duration: number }) => {
-    const videoDuration = data.duration;
+  const handleVideoLoad = (videoDuration: number) => {
     setDuration(videoDuration);
-
     if (videoDuration > 30) {
       handlePortionSelect('start', videoDuration);
     } else {
       setCutRange({ start: 0, end: videoDuration });
     }
   };
-
-  const playerRef = useRef(player);
-  playerRef.current = player;
-
-  useEvent(player, 'onLoad', handleVideoLoad);
-
-  useEvent(player, 'onProgress', (data) => {
-    if (duration > 30 && data.currentTime >= cutRange.end) {
-      playerRef.current.seekTo(cutRange.start);
-    }
-  });
 
   if (!session) {
     return (
@@ -104,15 +126,15 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
 
     if (portion === 'start') {
       setCutRange({ start: 0, end: 30 });
-      playerRef.current.seekTo(0);
+      playerRef.current?.seekTo(0);
     } else if (portion === 'middle') {
       const start = Math.max(0, (activeDuration - 30) / 2);
       setCutRange({ start, end: start + 30 });
-      playerRef.current.seekTo(start);
+      playerRef.current?.seekTo(start);
     } else if (portion === 'end') {
       const start = Math.max(0, activeDuration - 30);
       setCutRange({ start, end: activeDuration });
-      playerRef.current.seekTo(start);
+      playerRef.current?.seekTo(start);
     }
   };
 
@@ -220,10 +242,12 @@ const UploadScreen: React.FC<UploadScreenProps> = () => {
             <View className="mb-6">
               <View className="w-full h-80 bg-zinc-950 rounded-3xl overflow-hidden relative border border-white/10">
                 {sourceUri && (
-                  <VideoView
-                    player={player}
-                    style={StyleSheet.absoluteFill}
-                    resizeMode="contain"
+                  <UploadVideoContent
+                    ref={playerRef}
+                    sourceUri={sourceUri}
+                    onDuration={handleVideoLoad}
+                    cutRange={cutRange}
+                    duration={duration}
                   />
                 )}
 

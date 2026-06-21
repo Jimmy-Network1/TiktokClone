@@ -31,6 +31,31 @@ const getHostProfile = (live?: LiveSession | null) => {
   };
 };
 
+const LiveVideoContent: React.FC<{
+  streamUrl: string;
+}> = ({ streamUrl }) => {
+  const player = useVideoPlayer(
+    { uri: streamUrl },
+    useCallback((player: VideoPlayer) => {
+      player.loop = true;
+      player.playInBackground = false;
+      player.playWhenInactive = false;
+    }, []),
+  );
+
+  useEvent(player, 'onLoad', () => {
+    player.play();
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      resizeMode="cover"
+    />
+  );
+};
+
 const LiveScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -49,19 +74,6 @@ const LiveScreen = () => {
   const hostProfile = useMemo(() => getHostProfile(selectedLive), [selectedLive]);
 
   const hasStreamUrl = !!selectedLive?.stream_url;
-
-  const player = useVideoPlayer(
-    hasStreamUrl ? { uri: selectedLive!.stream_url! } : { uri: '' },
-    useCallback((player: VideoPlayer) => {
-      player.loop = true;
-      player.playInBackground = false;
-      player.playWhenInactive = false;
-    }, []),
-  );
-
-  useEvent(player, 'onLoad', () => {
-    player.play();
-  });
 
   const fetchLiveSessions = useCallback(async () => {
     setLoadingLives(true);
@@ -299,11 +311,7 @@ const LiveScreen = () => {
   return (
     <View className="flex-1 bg-black">
       {hasStreamUrl ? (
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        />
+        <LiveVideoContent streamUrl={selectedLive!.stream_url!} />
       ) : (
         <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-zinc-950 px-8">
           <View className="h-24 w-24 rounded-full bg-[#FE2C55]/20 items-center justify-center border border-[#FE2C55]/40">

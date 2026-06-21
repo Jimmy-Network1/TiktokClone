@@ -19,6 +19,7 @@ interface ProfileVideo {
   id: string;
   caption: string | null;
   created_at: string;
+  thumbnail_url?: string | null;
   likes: { id: string }[];
   comments: { id: string }[];
   video_views?: { id: string }[];
@@ -62,6 +63,7 @@ const PublicProfileScreen = () => {
             id,
             caption,
             created_at,
+            thumbnail_url,
             likes (id),
             comments (id),
             video_views (id)

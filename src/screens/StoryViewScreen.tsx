@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -31,6 +31,39 @@ const StoryProgressBar: React.FC<{
   return <Animated.View style={[styles.progressIndicator, animatedStyle]} className="bg-white h-full" />;
 };
 
+const StoryVideoContent: React.FC<{
+  mediaUrl: string;
+  currentIndex: number;
+  storyIndex: number;
+  onLoad: () => void;
+  onBufferChange: (buffering: boolean) => void;
+}> = ({ mediaUrl, onLoad, onBufferChange }) => {
+  const player = useVideoPlayer(
+    { uri: mediaUrl },
+    useCallback((player: VideoPlayer) => {
+      player.loop = false;
+      player.muted = false;
+    }, []),
+  );
+
+  useEvent(player, 'onLoad', () => {
+    onLoad();
+    player.play();
+  });
+
+  useEvent(player, 'onBuffer', (buffering) => {
+    onBufferChange(buffering);
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      resizeMode="cover"
+    />
+  );
+};
+
 const StoryViewScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
@@ -44,39 +77,6 @@ const StoryViewScreen: React.FC = () => {
   const progress = useSharedValue(0);
 
   const isVideo = currentStory.media_type === 'video';
-
-  const player = useVideoPlayer(
-    isVideo ? { uri: currentStory.media_url } : { uri: '' },
-    useCallback((player: VideoPlayer) => {
-      player.loop = false;
-      player.muted = false;
-    }, []),
-  );
-
-  useEvent(player, 'onLoad', () => {
-    setLoading(false);
-  });
-
-  useEvent(player, 'onBuffer', (buffering) => {
-    if (isVideo) setLoading(buffering);
-  });
-
-  const playerRef = useRef(player);
-  playerRef.current = player;
-
-  useEffect(() => {
-    if (!isVideo) {
-      if (loading) {
-        setLoading(false);
-      }
-      return;
-    }
-    if (loading) {
-      player.pause();
-    } else {
-      player.play();
-    }
-  }, [loading, isVideo, player]);
 
   const startAnimation = () => {
     progress.value = 0;
@@ -140,10 +140,14 @@ const StoryViewScreen: React.FC = () => {
         className="justify-center items-center"
       >
         {isVideo ? (
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
+          <StoryVideoContent
+            mediaUrl={currentStory.media_url}
+            currentIndex={currentIndex}
+            storyIndex={currentIndex}
+            onLoad={() => setLoading(false)}
+            onBufferChange={(buffering) => {
+              if (isVideo) setLoading(buffering);
+            }}
           />
         ) : (
           <Image
